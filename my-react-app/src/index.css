@@ -1,0 +1,35 @@
+/* Reset & base */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #fff0f6; /* very light pink */
+  font-family: 'Comic Sans MS', cursive, sans-serif;
+  color: #6a1b4d;
+}
+
+/* Scrollbar (optional, for cute touch) */
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #ff6fa1;
+  border-radius: 10px;
+  border: 2px solid #ffe6f0;
+}
+
+/* Links, if any */
+
+a {
+  color: #d6336c;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
