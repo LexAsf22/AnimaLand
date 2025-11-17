@@ -1,32 +1,26 @@
-/* Reset & base */
-
 * {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  background: #fff0f6; /* very light pink */
-  font-family: 'Comic Sans MS', cursive, sans-serif;
-  color: #6a1b4d;
+  background: #0e0e12;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  color: #e6e6e6;
 }
-
-/* Scrollbar (optional, for cute touch) */
 
 ::-webkit-scrollbar {
   width: 8px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: #ff6fa1;
+  background-color: #4da6ff;
   border-radius: 10px;
-  border: 2px solid #ffe6f0;
+  border: 2px solid #1b1b22;
 }
 
-/* Links, if any */
-
 a {
-  color: #d6336c;
+  color: #4da6ff;
   text-decoration: none;
 }
 
