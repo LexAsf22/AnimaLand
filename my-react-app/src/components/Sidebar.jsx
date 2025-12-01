@@ -1,29 +1,39 @@
-function Sidebar({ status }) {
+function Sidebar({ status, activePage, onMenuClick }) {
   const menuItems = [
-    { icon: "🏠", text: "Dashboard", link: "/" },
-    { icon: "👥", text: "Users", link: "/user" },
-    { icon: "📊", text: "Analytics", link: "/analytic" },
-    { icon: "⚙️", text: "Settings", link: "/setting" },
+    { icon: "🏥", text: "Dashboard" },
+    { icon: "🐾", text: "Users" },
+    { icon: "📈", text: "Analytics" },
+    { icon: "⚙️", text: "Settings" },
   ];
 
   if (!status) return null;
 
   return (
-    <aside className="bg-gray-900 text-white w-64 min-h-screen p-6 flex flex-col">
-      <h2 className="text-2xl font-bold mb-8">Animaland</h2>
+    <aside className="bg-green-700 text-white w-64 min-h-screen p-6 flex flex-col">
+      <h2 className="text-3xl font-bold mb-10 tracking-wide select-none">Animaland</h2>
+
       <nav>
-        <ul className="space-y-4">
-          {menuItems.map((item, idx) => (
-            <li key={idx}>
-              <a
-                href={item.link}
-                className="flex items-center gap-3 p-3 rounded hover:bg-gray-700 transition"
-              >
-                <span className="text-lg">{item.icon}</span>
-                <span className="font-medium">{item.text}</span>
-              </a>
-            </li>
-          ))}
+        <ul className="space-y-5">
+          {menuItems.map((item, idx) => {
+            const isActive = activePage === item.text;
+            return (
+              <li key={idx}>
+                <button
+                  onClick={() => onMenuClick(item.text)}
+                  className={`flex items-center gap-4 p-3 rounded-md w-full text-left
+                    transition-colors duration-200
+                    ${
+                      isActive
+                        ? "bg-green-900 shadow-lg font-semibold"
+                        : "hover:bg-green-800"
+                    }`}
+                >
+                  <span className="text-2xl">{item.icon}</span>
+                  <span className="text-lg">{item.text}</span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       </nav>
     </aside>
