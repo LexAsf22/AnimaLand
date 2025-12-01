@@ -1,4 +1,4 @@
-function Header({ onSidebarToggle }) {
+function Header({ onSidebarToggle, onLogout, user }) {
   return (
     <header className="flex items-center justify-between bg-green-600 text-white px-6 py-4 shadow-md">
       <button
@@ -11,8 +11,16 @@ function Header({ onSidebarToggle }) {
 
       <div className="flex items-center space-x-4">
         <span className="font-semibold text-lg select-none">Vet Clinic Admin</span>
-        <div className="w-9 h-9 rounded-full bg-green-300 flex items-center justify-center font-bold text-green-900 cursor-default">
-          Lex
+
+        <div className="flex items-center space-x-4">
+          <span className="select-none">{user?.username}</span>
+
+          <button
+            onClick={onLogout}
+            className="bg-green-800 hover:bg-green-900 px-3 py-1 rounded text-sm transition"
+          >
+            Logout
+          </button>
         </div>
       </div>
     </header>
