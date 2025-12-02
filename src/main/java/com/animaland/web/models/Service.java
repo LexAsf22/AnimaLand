@@ -1,5 +1,6 @@
 package com.animaland.web.models;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import java.util.List;
 
@@ -16,10 +17,10 @@ public class Service {
     private Double price;
     private Integer duration;
 
+    @JsonManagedReference("service-appointments")
     @OneToMany(mappedBy = "service")
     private List<Appointment> appointments;
 
-    // Getters and Setters
     public Long getServiceId() { return serviceId; }
     public void setServiceId(Long serviceId) { this.serviceId = serviceId; }
 

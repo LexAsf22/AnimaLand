@@ -1,5 +1,6 @@
 package com.animaland.web.models;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -17,6 +18,7 @@ public class Appointment {
 
     @ManyToOne
     @JoinColumn(name = "pet_id", nullable = false)
+    @JsonBackReference(value = "pet-appointments")
     private Pet pet;
 
     @ManyToOne
@@ -27,8 +29,10 @@ public class Appointment {
     @JoinColumn(name = "staff_id", nullable = false)
     private Employee employee;
 
-    @OneToMany(mappedBy = "appointment")
+    @OneToMany(mappedBy = "appointment", fetch = FetchType.LAZY)
     private List<Treatment> treatments;
+
+    // Getters and setters
 
     public Long getAppointmentId() { return appointmentId; }
     public void setAppointmentId(Long appointmentId) { this.appointmentId = appointmentId; }

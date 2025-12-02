@@ -1,5 +1,6 @@
 package com.animaland.web.models;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import java.util.List;
 
@@ -20,6 +21,7 @@ public class Employee {
     private String role;
     private String contactNumber;
 
+    @JsonManagedReference("employee-appointments")
     @OneToMany(mappedBy = "employee")
     private List<Appointment> appointments;
 

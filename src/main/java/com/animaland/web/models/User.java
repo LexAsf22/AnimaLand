@@ -1,6 +1,6 @@
 package com.animaland.web.models;
 
-import com.animaland.web.models.Pet;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import java.util.List;
 
@@ -22,8 +22,11 @@ public class User {
     private String phoneNumber;
     private String address;
 
-    @OneToMany(mappedBy = "owner")
+    @OneToMany(mappedBy = "owner", fetch = FetchType.LAZY)
+    @JsonManagedReference(value = "user-pets")
     private List<Pet> pets;
+
+    // Getters and setters
 
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }

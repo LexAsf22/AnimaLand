@@ -1,4 +1,4 @@
-package com.animaland.web.dto;
+package com.animaland.web.DTO;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

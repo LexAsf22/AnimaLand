@@ -1,5 +1,6 @@
 package com.animaland.web.models;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 
@@ -16,11 +17,11 @@ public class Treatment {
     private String medicinePrescribed;
     private LocalDate serviceDate;
 
+    @JsonBackReference("appointment-treatments")
     @ManyToOne
     @JoinColumn(name = "appointment_id", nullable = false)
     private Appointment appointment;
 
-    // Getters and Setters
     public Long getTreatmentId() { return treatmentId; }
     public void setTreatmentId(Long treatmentId) { this.treatmentId = treatmentId; }
 
