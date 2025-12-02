@@ -19,18 +19,12 @@ public class JwtConfig {
     @Value("${jwt.secret-key}")
     private String jwtSecretKey;
 
-    // -----------------------------
-    // JWT ENCODER
-    // -----------------------------
     @Bean
     public JwtEncoder jwtEncoder() {
         // Using an immutable secret for signing JWT
         return new NimbusJwtEncoder(new ImmutableSecret<>(jwtSecretKey.getBytes()));
     }
 
-    // -----------------------------
-    // JWT DECODER
-    // -----------------------------
     @Bean
     public JwtDecoder jwtDecoder() {
         // Convert secret string into HMAC SHA256 key

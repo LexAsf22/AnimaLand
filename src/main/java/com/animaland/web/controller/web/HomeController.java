@@ -25,7 +25,6 @@ public class HomeController {
 
     private final AppointmentService appointmentService;
     private final AppointmentRepository appointmentRepository;
-
     private final PetRepository petRepository;
     private final ServiceRepository serviceRepository;
     private final EmployeeRepository employeeRepository;
@@ -47,13 +46,8 @@ public class HomeController {
     //-------------------------------------------
     @GetMapping("/")
     public String index(Model model) {
-
         List<Appointment> appointments = appointmentRepository.findAll();
         model.addAttribute("appointments", appointments);
-
-        // Debug
-        appointments.forEach(a -> System.out.println("Appt ID: " + a.getAppointmentId()));
-
         return "index"; // index.html
     }
 
@@ -62,7 +56,6 @@ public class HomeController {
     //-------------------------------------------
     @GetMapping("/create")
     public String create(Model model) {
-
         model.addAttribute("appointment", new AppointmentDTO());
 
         // Dropdown lists

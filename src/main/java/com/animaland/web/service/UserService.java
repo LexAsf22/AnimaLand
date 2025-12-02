@@ -1,11 +1,12 @@
 package com.animaland.web.service;
 
+import com.animaland.web.DTO.UserDTO;
 import com.animaland.web.models.User;
 import com.animaland.web.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
+import java.util.List;
 
 @Service
 public class UserService {
@@ -19,48 +20,95 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    // -----------------------------
-    // REGISTER NEW USER
-    // -----------------------------
-    public User registerUser(String email, String password) {
+    // ============================
+    // API REGISTER USER
+    // ============================
+    public User registerUser(String email, String rawPassword) {
+
         if (userRepository.existsByEmail(email)) {
-            throw new IllegalArgumentException("Email already taken");
+            throw new RuntimeException("Email already exists.");
         }
 
         User user = new User();
         user.setEmail(email);
-        user.setPassword(passwordEncoder.encode(password));
+        user.setPassword(passwordEncoder.encode(rawPassword));
 
-        // Optional default values
-        user.setFirstName(email);
+        // Default values (optional)
+        user.setFirstName("User");
+        user.setLastName("");
+        user.setPhoneNumber("");
+        user.setAddress("");
 
         return userRepository.save(user);
     }
 
-    // -----------------------------
-    // AUTHENTICATE USER
-    // -----------------------------
-    public User authenticate(String email, String rawPassword) {
-        Optional<User> optionalUser = userRepository.findByEmail(email);
+    // ============================
+    // CREATE USER (WEB FORM)
+    // ============================
+    public User save(UserDTO dto) {
 
-        if (optionalUser.isEmpty()) {
-            return null; // user not found
+        if (userRepository.existsByEmail(dto.getEmail())) {
+            throw new RuntimeException("Email already exists.");
         }
 
-        User user = optionalUser.get();
+        User user = new User();
+        user.setFirstName(dto.getFirstName());
+        user.setLastName(dto.getLastName());
+        user.setEmail(dto.getEmail());
+        user.setPhoneNumber(dto.getPhoneNumber());
+        user.setAddress(dto.getAddress());
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
 
-        // Verify password
-        if (passwordEncoder.matches(rawPassword, user.getPassword())) {
-            return user;
-        }
-
-        return null; // invalid password
+        return userRepository.save(user);
     }
 
-    // -----------------------------
-    // FIND USER BY ID
-    // -----------------------------
-    public Optional<User> findById(Long id) {
-        return userRepository.findById(id);
+    // ============================
+    // UPDATE USER
+    // ============================
+    public User updateUser(User user, UserDTO dto) {
+
+        if (!user.getEmail().equals(dto.getEmail()) &&
+                userRepository.existsByEmail(dto.getEmail())) {
+            throw new RuntimeException("Email already exists.");
+        }
+
+        user.setFirstName(dto.getFirstName());
+        user.setLastName(dto.getLastName());
+        user.setEmail(dto.getEmail());
+        user.setPhoneNumber(dto.getPhoneNumber());
+        user.setAddress(dto.getAddress());
+
+        if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
+            user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        }
+
+        return userRepository.save(user);
+    }
+
+    // ============================
+    // LOGIN / AUTHENTICATE
+    // ============================
+    public User authenticate(String email, String rawPassword) {
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) return null;
+
+        if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
+            return null;
+        }
+
+        return user;
+    }
+
+    // ============================
+    // CRUD
+    // ============================
+    public List<User> findAll() { return userRepository.findAll(); }
+
+    public User findById(Long id) { return userRepository.findById(id).orElse(null); }
+
+    public void deleteUser(Long id) { userRepository.deleteById(id); }
+
+    public User findByEmail(String email) {
+        return userRepository.findByEmail(email).orElse(null);
     }
 }

@@ -27,17 +27,11 @@ public class SecurityConfig {
         this.customUserDetailsService = customUserDetailsService;
     }
 
-    // -----------------------------
-    // PASSWORD ENCODER
-    // -----------------------------
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // -----------------------------
-    // AUTH MANAGER
-    // -----------------------------
     @Bean
     public AuthenticationManager authManager(
             UserDetailsService userDetailsService,
@@ -50,9 +44,6 @@ public class SecurityConfig {
         return new ProviderManager(provider);
     }
 
-    // -----------------------------
-    // CORS (for frontend)
-    // -----------------------------
     @Bean
     public WebMvcConfigurer corsConfigurer() {
         return new WebMvcConfigurer() {
@@ -68,9 +59,6 @@ public class SecurityConfig {
         };
     }
 
-    // -----------------------------
-    // API SECURITY (Stateless)
-    // -----------------------------
     @Bean
     @Order(1)
     public SecurityFilterChain apiSecurity(HttpSecurity http) throws Exception {
@@ -89,9 +77,6 @@ public class SecurityConfig {
                 .build();
     }
 
-    // -----------------------------
-    // WEB SECURITY (Thymeleaf pages)
-    // -----------------------------
     @Bean
     @Order(2)
     public SecurityFilterChain webSecurity(HttpSecurity http) throws Exception {
