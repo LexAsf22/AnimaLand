@@ -84,7 +84,7 @@ const App = () => {
   // Render based on auth view
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <>
         {authView === "login" && (
           <Login
             onLogin={handleLogin}
@@ -97,23 +97,25 @@ const App = () => {
             onSwitchToLogin={() => setAuthView("login")}
           />
         )}
-      </div>
+      </>
     );
   }
 
   // Render main app UI after login
   return (
-    <div className="flex h-screen bg-gray-50 font-sans text-gray-900">
+    <div className="flex h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100 font-sans text-gray-900">
       <Sidebar
         status={sidebarToggle}
         activePage={activePage}
         onMenuClick={handleMenuClick}
       />
 
-      <div className="flex flex-col flex-1">
+      <div className="flex flex-col flex-1 overflow-hidden">
         <Header onSidebarToggle={toggleSidebar} onLogout={handleLogout} user={user} />
 
-        <main className="p-6 flex-1 overflow-auto bg-white shadow-inner">{renderPage()}</main>
+        <main className="flex-1 overflow-auto">
+          {renderPage()}
+        </main>
 
         <Footer />
       </div>
