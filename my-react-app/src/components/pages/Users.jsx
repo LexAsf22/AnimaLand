@@ -1,5 +1,7 @@
+import { useState } from "react";
+
 export default function Users() {
-  const users = [
+  const initialUsers = [
     { id: 1, name: "Buddy", species: "Dog", breed: "Golden Retriever", owner: "Alice Johnson", lastVisit: "2024-11-28", status: "Active" },
     { id: 2, name: "Whiskers", species: "Cat", breed: "Persian", owner: "Michael Lee", lastVisit: "2024-11-25", status: "Active" },
     { id: 3, name: "Chirpy", species: "Parrot", breed: "Macaw", owner: "Sarah Kim", lastVisit: "2024-11-20", status: "Active" },
@@ -7,6 +9,10 @@ export default function Users() {
     { id: 5, name: "Max", species: "Dog", breed: "Poodle", owner: "Emma Wilson", lastVisit: "2024-12-01", status: "Active" },
     { id: 6, name: "Luna", species: "Cat", breed: "Siamese", owner: "David Chen", lastVisit: "2024-11-30", status: "Active" },
   ];
+
+  const [users, setUsers] = useState(initialUsers);
+  const [searchTerm, setSearchTerm] = useState(""); // Search input
+  const [modal, setModal] = useState({ type: null, user: null }); // type: 'view', 'edit', 'add'
 
   const getSpeciesIcon = (species) => {
     switch(species.toLowerCase()) {
@@ -38,63 +44,77 @@ export default function Users() {
     }
   };
 
+  // Add, Edit, Delete functions
+  const addUser = (newUser) => {
+    setUsers([...users, { ...newUser, id: Date.now() }]);
+    setModal({ type: null, user: null });
+  };
+
+  const editUser = (updatedUser) => {
+    setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
+    setModal({ type: null, user: null });
+  };
+
+  const deleteUser = (id) => {
+    if (confirm("Are you sure you want to delete this patient?")) {
+      setUsers(users.filter(u => u.id !== id));
+    }
+  };
+
+  // Filter users based on search term
+  const filteredUsers = users.filter(u =>
+    u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    u.species.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    u.owner.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100 p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full flex items-center justify-center shadow-lg">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </div>
-              <div>
-                <h1 className="text-4xl font-serif font-bold text-gray-800">Patients</h1>
-                <p className="text-gray-600 mt-1">Manage your furry friends and their care</p>
-              </div>
-            </div>
-            <button className="bg-gradient-to-r from-pink-400 to-rose-400 text-white py-3 px-6 rounded-lg hover:from-pink-500 hover:to-rose-500 transition-all duration-300 font-medium shadow-md hover:shadow-lg transform hover:-translate-y-1 flex items-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-              </svg>
-              Add Patient
-            </button>
-          </div>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-4xl font-serif font-bold text-gray-800">Patients</h1>
+          <button
+            className="bg-gradient-to-r from-pink-400 to-rose-400 text-white py-3 px-6 rounded-lg hover:from-pink-500 hover:to-rose-500 transition-all duration-300 font-medium shadow-md hover:shadow-lg transform hover:-translate-y-1 flex items-center gap-2"
+            onClick={() => setModal({ type: 'add', user: null })}
+          >
+            Add Patient
+          </button>
+        </div>
 
-          {/* Stats Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-pink-100">
-              <p className="text-sm text-gray-600">Total Patients</p>
-              <p className="text-2xl font-bold text-gray-800">{users.length}</p>
-            </div>
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-pink-100">
-              <p className="text-sm text-gray-600">Active</p>
-              <p className="text-2xl font-bold text-green-600">{users.filter(u => u.status === 'Active').length}</p>
-            </div>
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-pink-100">
-              <p className="text-sm text-gray-600">Dogs</p>
-              <p className="text-2xl font-bold text-gray-800">{users.filter(u => u.species === 'Dog').length}</p>
-            </div>
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-pink-100">
-              <p className="text-sm text-gray-600">Cats</p>
-              <p className="text-2xl font-bold text-gray-800">{users.filter(u => u.species === 'Cat').length}</p>
-            </div>
-          </div>
-
-          {/* Search Bar */}
+        {/* Stats Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-pink-100">
-            <div className="flex items-center gap-3">
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input
-                type="text"
-                placeholder="Search patients by name, species, or owner..."
-                className="flex-1 bg-transparent focus:outline-none text-gray-700 placeholder-gray-400"
-              />
-            </div>
+            <p className="text-sm text-gray-600">Total Patients</p>
+            <p className="text-2xl font-bold text-gray-800">{users.length}</p>
+          </div>
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-pink-100">
+            <p className="text-sm text-gray-600">Active</p>
+            <p className="text-2xl font-bold text-green-600">{users.filter(u => u.status === 'Active').length}</p>
+          </div>
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-pink-100">
+            <p className="text-sm text-gray-600">Dogs</p>
+            <p className="text-2xl font-bold text-gray-800">{users.filter(u => u.species === 'Dog').length}</p>
+          </div>
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-pink-100">
+            <p className="text-sm text-gray-600">Cats</p>
+            <p className="text-2xl font-bold text-gray-800">{users.filter(u => u.species === 'Cat').length}</p>
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-pink-100 mb-6">
+          <div className="flex items-center gap-3">
+            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search patients by name, species, or owner..."
+              className="flex-1 bg-transparent focus:outline-none text-gray-700 placeholder-gray-400"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
         </div>
 
@@ -113,71 +133,119 @@ export default function Users() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-pink-100">
-                {users.map((user, index) => (
-                  <tr
-                    key={user.id}
-                    className="hover:bg-pink-50/50 transition-colors"
-                  >
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full flex items-center justify-center flex-shrink-0">
-                          <span className="text-white font-bold text-sm">{user.name.charAt(0)}</span>
-                        </div>
-                        <div>
-                          <p className="font-semibold text-gray-800">{user.name}</p>
-                          <p className="text-xs text-gray-500">ID: #{user.id}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        {getSpeciesIcon(user.species)}
-                        <div>
-                          <p className="font-medium text-gray-800">{user.species}</p>
-                          <p className="text-sm text-gray-500">{user.breed}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <p className="text-gray-700">{user.owner}</p>
-                    </td>
-                    <td className="p-4">
-                      <p className="text-gray-700">{user.lastVisit}</p>
-                    </td>
-                    <td className="p-4">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                        user.status === 'Active' 
-                          ? 'bg-green-100 text-green-700' 
-                          : 'bg-gray-100 text-gray-700'
-                      }`}>
-                        {user.status}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <button className="p-2 hover:bg-pink-100 rounded-lg transition-colors" title="View">
-                          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                        </button>
-                        <button className="p-2 hover:bg-pink-100 rounded-lg transition-colors" title="Edit">
-                          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                        <button className="p-2 hover:bg-pink-100 rounded-lg transition-colors" title="Delete">
-                          <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </div>
+                {filteredUsers.map((user) => (
+                  <tr key={user.id} className="hover:bg-pink-50/50 transition-colors">
+                    <td className="p-4">{user.name}</td>
+                    <td className="p-4">{user.species} ({user.breed})</td>
+                    <td className="p-4">{user.owner}</td>
+                    <td className="p-4">{user.lastVisit}</td>
+                    <td className="p-4">{user.status}</td>
+                    <td className="p-4 flex gap-2">
+                      <button onClick={() => setModal({ type: 'view', user })} className="text-blue-500">View</button>
+                      <button onClick={() => setModal({ type: 'edit', user })} className="text-green-500">Edit</button>
+                      <button onClick={() => deleteUser(user.id)} className="text-red-500">Delete</button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+        </div>
+
+        {/* Modal */}
+        {modal.type && (
+          <Modal
+            type={modal.type}
+            user={modal.user}
+            addUser={addUser}
+            editUser={editUser}
+            close={() => setModal({ type: null, user: null })}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Modal Component (same as previous example)
+function Modal({ type, user, addUser, editUser, close }) {
+  const [formData, setFormData] = useState(user || {
+    name: '',
+    species: '',
+    breed: '',
+    owner: '',
+    lastVisit: '',
+    status: 'Active',
+  });
+
+  const handleSubmit = () => {
+    if (type === 'add') addUser(formData);
+    if (type === 'edit') editUser({ ...formData, id: user.id });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded-xl w-96 shadow-lg">
+        <h2 className="text-xl font-bold mb-4">{type === 'view' ? 'View' : type === 'edit' ? 'Edit' : 'Add'} Patient</h2>
+
+        <div className="flex flex-col gap-2">
+          <label>Name:</label>
+          <input
+            type="text"
+            value={formData.name}
+            readOnly={type === 'view'}
+            onChange={e => setFormData({ ...formData, name: e.target.value })}
+            className="border p-2 rounded"
+          />
+          <label>Species:</label>
+          <input
+            type="text"
+            value={formData.species}
+            readOnly={type === 'view'}
+            onChange={e => setFormData({ ...formData, species: e.target.value })}
+            className="border p-2 rounded"
+          />
+          <label>Breed:</label>
+          <input
+            type="text"
+            value={formData.breed}
+            readOnly={type === 'view'}
+            onChange={e => setFormData({ ...formData, breed: e.target.value })}
+            className="border p-2 rounded"
+          />
+          <label>Owner:</label>
+          <input
+            type="text"
+            value={formData.owner}
+            readOnly={type === 'view'}
+            onChange={e => setFormData({ ...formData, owner: e.target.value })}
+            className="border p-2 rounded"
+          />
+          <label>Last Visit:</label>
+          <input
+            type="date"
+            value={formData.lastVisit}
+            readOnly={type === 'view'}
+            onChange={e => setFormData({ ...formData, lastVisit: e.target.value })}
+            className="border p-2 rounded"
+          />
+          <label>Status:</label>
+          <select
+            value={formData.status}
+            disabled={type === 'view'}
+            onChange={e => setFormData({ ...formData, status: e.target.value })}
+            className="border p-2 rounded"
+          >
+            <option>Active</option>
+            <option>Inactive</option>
+          </select>
+        </div>
+
+        <div className="flex justify-end mt-4 gap-2">
+          <button onClick={close} className="px-4 py-2 rounded bg-gray-200">Cancel</button>
+          {type !== 'view' && (
+            <button onClick={handleSubmit} className="px-4 py-2 rounded bg-pink-400 text-white">{type === 'add' ? 'Add' : 'Save'}</button>
+          )}
         </div>
       </div>
     </div>
