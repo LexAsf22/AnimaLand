@@ -52,19 +52,21 @@ export default function Dashboard() {
             <p className="text-sm text-gray-500 mt-3">6 pending, 18 completed</p>
           </div>
 
-          {/* Revenue Card */}
+          {/* Service Card */}
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-pink-100 hover:shadow-2xl hover:scale-105 transition-all duration-300">
             <div className="flex items-start justify-between mb-4">
               <div className="w-14 h-14 bg-gradient-to-br from-pink-400 to-rose-400 rounded-xl flex items-center justify-center shadow-md">
                 <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
-              <span className="text-xs font-medium text-pink-600 bg-pink-100 px-3 py-1 rounded-full">+8%</span>
+              <span className="text-xs font-medium text-pink-600 bg-pink-100 px-3 py-1 rounded-full">Service</span>
             </div>
-            <h2 className="text-lg font-medium text-gray-600 mb-2">Monthly Revenue</h2>
-            <p className="text-4xl font-bold text-gray-800">₱5,430</p>
-            <p className="text-sm text-gray-500 mt-3">vs ₱5,025 last month</p>
+            <h2 className="text-lg font-medium text-gray-600 mb-2">Service Details</h2>
+            <p className="text-2xl font-bold text-gray-800">Grooming</p> {/* service_name */}
+            <p className="text-sm text-gray-500 mt-1">Type: Pet Care</p> {/* service_type */}
+            <p className="text-sm text-gray-500">Price: ₱1,200</p> {/* price */}
+            <p className="text-sm text-gray-500">Duration: 45 mins</p> {/* duration */}
           </div>
         </div>
 

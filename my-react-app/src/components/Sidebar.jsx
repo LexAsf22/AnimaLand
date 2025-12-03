@@ -22,7 +22,7 @@ function Sidebar({ status, activePage, onMenuClick }) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
       ), 
-      text: "Analytics" 
+      text: "Employee" 
     },
     { 
       icon: (
@@ -32,6 +32,14 @@ function Sidebar({ status, activePage, onMenuClick }) {
         </svg>
       ), 
       text: "Settings" 
+    },
+    { 
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-6a2 2 0 012-2h2a2 2 0 012 2v6m0 0v2H9v-2m4-6H9m6 0h-6m6 0h.01" />
+        </svg>
+      ), 
+      text: "Treatment Records" // <-- new menu item
     },
   ];
 
@@ -65,10 +73,9 @@ function Sidebar({ status, activePage, onMenuClick }) {
                   onClick={() => onMenuClick(item.text)}
                   className={`flex items-center gap-4 p-4 rounded-xl w-full text-left
                     transition-all duration-300
-                    ${
-                      isActive
-                        ? "bg-white text-pink-600 shadow-lg font-semibold scale-105"
-                        : "hover:bg-white/10 hover:translate-x-1"
+                    ${isActive
+                      ? "bg-white text-pink-600 shadow-lg font-semibold scale-105"
+                      : "hover:bg-white/10 hover:translate-x-1"
                     }`}
                 >
                   <span className={isActive ? "text-pink-600" : "text-white"}>{item.icon}</span>

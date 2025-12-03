@@ -6,8 +6,9 @@ import Footer from "./components/Footer";
 
 import Dashboard from "./components/pages/Dashboard";
 import Users from "./components/pages/Users";
-import Analytics from "./components/pages/Analytics";
+import Employee from "./components/pages/Employee";
 import Settings from "./components/pages/Settings";
+import TreatmentRecords from "./components/pages/TreatmentRecords"; // <-- new page
 
 import Login from "./components/auth/Login";
 import Register from "./components/auth/Register";
@@ -72,10 +73,12 @@ const App = () => {
         return <Dashboard />;
       case "Users":
         return <Users />;
-      case "Analytics":
-        return <Analytics />;
+      case "Employee":
+        return <Employee />;
       case "Settings":
         return <Settings />;
+      case "Treatment Records": // <-- new case
+        return <TreatmentRecords />;
       default:
         return <Dashboard />;
     }
