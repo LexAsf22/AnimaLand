@@ -4,71 +4,111 @@ import com.animaland.web.DTO.AuthRequest;
 import com.animaland.web.DTO.AuthResponse;
 import com.animaland.web.DTO.RegisterRequest;
 import com.animaland.web.models.User;
+import com.animaland.web.service.JwtTokenService;
 import com.animaland.web.service.UserService;
-import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
 public class ApiAuthController {
 
+    private final AuthenticationManager authenticationManager;
+    private final JwtTokenService jwtTokenService;
     private final UserService userService;
 
-    public ApiAuthController(UserService userService) {
+    public ApiAuthController(AuthenticationManager authenticationManager,
+                             JwtTokenService jwtTokenService,
+                             UserService userService) {
+        this.authenticationManager = authenticationManager;
+        this.jwtTokenService = jwtTokenService;
         this.userService = userService;
     }
 
+    // =========================================
+    // LOGIN
+    // =========================================
     @PostMapping("/login")
-    public AuthResponse login(@Valid @RequestBody AuthRequest request, HttpSession session) {
-        User user = userService.authenticate(request.username(), request.password());
+    public AuthResponse login(@Valid @RequestBody AuthRequest request) {
 
-        if (user == null) {
-            return new AuthResponse(null, null, "Invalid username or password");
-        }
+        // Authenticate user
+        var authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        request.username(),    // username = email
+                        request.password()
+                )
+        );
 
-        // store user in session
-        session.setAttribute("USER_SESSION", user);
+        // Generate JWT token
+        String token = jwtTokenService.generateToken(authentication);
+
+        User user = userService.findByEmail(request.username());
 
         return new AuthResponse(
-                user.getUserId(),
-                user.getFirstName(),
+                token,
+                user.getEmail(),
                 "Login successful"
         );
     }
 
+    // =========================================
+    // REGISTER + AUTO LOGIN
+    // =========================================
     @PostMapping("/register")
-    public AuthResponse register(@Valid @RequestBody RegisterRequest request, HttpSession session) {
-        User newUser = userService.registerUser(request.username(), request.password());
+    public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
 
-        // auto-login
-        session.setAttribute("USER_SESSION", newUser);
+        // Create account
+        User newUser = userService.registerUser(
+                request.username(),    // again username = email
+                request.password()
+        );
+
+        // Auto login
+        var authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        newUser.getEmail(),
+                        request.password()
+                )
+        );
+
+        String token = jwtTokenService.generateToken(authentication);
 
         return new AuthResponse(
-                newUser.getUserId(),
-                newUser.getFirstName(),
+                token,
+                newUser.getEmail(),
                 "Registration successful"
         );
     }
 
+    // =========================================
+    // VALIDATE TOKEN
+    // =========================================
     @GetMapping("/validate")
-    public AuthResponse validate(HttpSession session) {
-        User user = (User) session.getAttribute("USER_SESSION");
+    public AuthResponse validate(@RequestHeader("Authorization") String header) {
+
+        if (header == null || !header.startsWith("Bearer ")) {
+            return new AuthResponse(null, null, "Invalid token");
+        }
+
+        String token = header.substring(7);
+
+        if (!jwtTokenService.isTokenValid(token)) {
+            return new AuthResponse(null, null, "Token invalid");
+        }
+
+        String email = jwtTokenService.extractUsername(token);
+        User user = userService.findByEmail(email);
 
         if (user == null) {
-            return new AuthResponse(null, null, "No active session");
+            return new AuthResponse(null, null, "User not found");
         }
 
         return new AuthResponse(
-                user.getUserId(),
-                user.getFirstName(),
-                "Session is valid"
+                token,
+                user.getEmail(),
+                "Token valid"
         );
-    }
-
-    @PostMapping("/logout")
-    public AuthResponse logout(HttpSession session) {
-        session.invalidate();
-        return new AuthResponse(null, null, "Logged out successfully");
     }
 }
