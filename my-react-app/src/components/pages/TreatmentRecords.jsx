@@ -1,148 +1,60 @@
+import React from "react";
+
+// Sample pet and treatment data
+const pets = [
+  { id: 1, name: "Buddy", species: "Dog", breed: "Golden Retriever", owner: "Alice Johnson", lastVisit: "2024-11-28", status: "Active" },
+  { id: 2, name: "Whiskers", species: "Cat", breed: "Persian", owner: "Michael Lee", lastVisit: "2024-11-25", status: "Active" },
+  { id: 3, name: "Chirpy", species: "Parrot", breed: "Macaw", owner: "Sarah Kim", lastVisit: "2024-11-20", status: "Active" },
+  { id: 4, name: "Nibbles", species: "Rabbit", breed: "Holland Lop", owner: "John Smith", lastVisit: "2024-11-15", status: "Inactive" },
+  { id: 5, name: "Max", species: "Dog", breed: "Poodle", owner: "Emma Wilson", lastVisit: "2024-12-01", status: "Active" },
+  { id: 6, name: "Luna", species: "Cat", breed: "Siamese", owner: "David Chen", lastVisit: "2024-11-30", status: "Active" },
+];
+
+const treatmentRecords = [
+  { treatment_id: 101, appointment_id: 201, pet_id: 1, findings: "Healthy", service_given: "Checkup", medicine_prescribed: "None", service_date: "2024-11-28" },
+  { treatment_id: 102, appointment_id: 202, pet_id: 2, findings: "Mild cold", service_given: "Vaccination", medicine_prescribed: "Antibiotics", service_date: "2024-11-25" },
+  { treatment_id: 103, appointment_id: 203, pet_id: 3, findings: "Feather loss", service_given: "Checkup", medicine_prescribed: "Vitamin supplements", service_date: "2024-11-20" },
+  { treatment_id: 104, appointment_id: 204, pet_id: 5, findings: "Dental issues", service_given: "Checkup", medicine_prescribed: "Painkillers", service_date: "2024-12-01" },
+  { treatment_id: 105, appointment_id: 205, pet_id: 6, findings: "Healthy", service_given: "Vaccination", medicine_prescribed: "None", service_date: "2024-11-30" },
+];
+
 export default function TreatmentRecords() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100 p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-serif text-gray-800 mb-3">Treatment Records Dashboard</h1>
-          <p className="text-gray-600">
-            Monitor treatments, services given, prescribed medicines, and service dates.
-          </p>
+          <p className="text-gray-600">Monitor treatments, services given, prescribed medicines, and service dates for each pet.</p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {/* Total Treatments */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-pink-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">Total Treatments</p>
-                <p className="text-3xl font-bold text-gray-800">128</p>
-                <p className="text-sm text-pink-500 mt-2">↑ 10% from last month</p>
+        {/* Pet Treatment Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {pets.map((pet) => {
+            const petRecords = treatmentRecords.filter(record => record.pet_id === pet.id);
+            return (
+              <div key={pet.id} className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-pink-100">
+                <h2 className="text-2xl font-semibold text-gray-800 mb-4">{pet.name} ({pet.species})</h2>
+                <p className="text-gray-600 mb-2">Breed: {pet.breed}</p>
+                <p className="text-gray-600 mb-2">Owner: {pet.owner}</p>
+                <p className="text-gray-600 mb-4">Last Visit: {pet.lastVisit}</p>
+                <h3 className="text-lg font-medium text-gray-700 mb-2">Treatment Records:</h3>
+                {petRecords.length > 0 ? (
+                  <ul className="space-y-2">
+                    {petRecords.map((record) => (
+                      <li key={record.treatment_id} className="bg-pink-50 rounded-xl p-3 border border-pink-100">
+                        <p><span className="font-semibold">Service:</span> {record.service_given}</p>
+                        <p><span className="font-semibold">Findings:</span> {record.findings}</p>
+                        <p><span className="font-semibold">Medicine:</span> {record.medicine_prescribed}</p>
+                        <p><span className="font-semibold">Date:</span> {record.service_date}</p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-500">No records found.</p>
+                )}
               </div>
-              <div className="w-16 h-16 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full flex items-center justify-center">
-                <svg
-                  className="w-8 h-8 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {/* Services Given */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-pink-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">Services Given</p>
-                <p className="text-3xl font-bold text-gray-800">5</p>
-                <p className="text-sm text-pink-500 mt-2">Most common: Checkups</p>
-              </div>
-              <div className="w-16 h-16 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full flex items-center justify-center">
-                <svg
-                  className="w-8 h-8 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {/* Medicines Prescribed */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-pink-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">Medicines Prescribed</p>
-                <p className="text-3xl font-bold text-gray-800">72</p>
-                <p className="text-sm text-pink-500 mt-2">Most common: Antibiotics</p>
-              </div>
-              <div className="w-16 h-16 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full flex items-center justify-center">
-                <svg
-                  className="w-8 h-8 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M16 12H8m0 0H4m4 0v8m0-8v-8m0 8h8"
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Treatment Charts / Tables */}
-        <div className="space-y-6">
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-pink-100">
-            <h2 className="text-2xl font-serif text-gray-800 mb-6">Treatments by Service</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Service Distribution */}
-              <div className="bg-gradient-to-br from-pink-50 to-rose-50 rounded-xl p-6 border border-pink-100">
-                <h3 className="text-lg font-semibold text-gray-700 mb-4">Service Type Distribution</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Checkups</span>
-                    <span className="text-sm font-medium text-gray-700">45</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Vaccinations</span>
-                    <span className="text-sm font-medium text-gray-700">32</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Surgeries</span>
-                    <span className="text-sm font-medium text-gray-700">18</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Grooming</span>
-                    <span className="text-sm font-medium text-gray-700">33</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Recent Records */}
-              <div className="bg-gradient-to-br from-pink-50 to-rose-50 rounded-xl p-6 border border-pink-100">
-                <h3 className="text-lg font-semibold text-gray-700 mb-4">Recent Treatment Records</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Appointment #101</span>
-                    <span className="text-sm font-medium text-gray-700">Checkup - 2025-12-03</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Appointment #102</span>
-                    <span className="text-sm font-medium text-gray-700">Vaccination - 2025-12-02</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Appointment #103</span>
-                    <span className="text-sm font-medium text-gray-700">Surgery - 2025-12-01</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Appointment #104</span>
-                    <span className="text-sm font-medium text-gray-700">Grooming - 2025-11-30</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+            );
+          })}
         </div>
       </div>
     </div>

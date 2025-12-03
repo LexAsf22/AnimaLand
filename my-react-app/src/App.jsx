@@ -4,13 +4,16 @@ import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 
+// Pages
 import Dashboard from "./components/pages/Dashboard";
 import Users from "./components/pages/Users";
 import Employee from "./components/pages/Employee";
 import Settings from "./components/pages/Settings";
-import TreatmentRecords from "./components/pages/TreatmentRecords"; // <-- new page
+import TreatmentRecords from "./components/pages/TreatmentRecords";
+import Appointment from "./components/pages/Appointment";
 
-import Login from "./components/auth/Login";
+// Auth
+import Login from "./components/auth/AdminLogin";
 import Register from "./components/auth/Register";
 
 const App = () => {
@@ -18,11 +21,11 @@ const App = () => {
   const [activePage, setActivePage] = useState("Dashboard");
 
   // Auth state
-  const [user, setUser] = useState(null); // null = logged out
+  const [user, setUser] = useState(null);
   const [registeredUsers, setRegisteredUsers] = useState([
     { username: "admin", password: "admin123" },
   ]);
-  const [authView, setAuthView] = useState("login"); // "login" or "register"
+  const [authView, setAuthView] = useState("login");
 
   // Toggle sidebar
   function toggleSidebar() {
@@ -34,11 +37,12 @@ const App = () => {
     setActivePage(page);
   }
 
-  // Handle login form submit
+  // Handle login
   function handleLogin(username, password) {
     const foundUser = registeredUsers.find(
       (u) => u.username === username && u.password === password
     );
+
     if (foundUser) {
       setUser(foundUser);
       setAuthView("app");
@@ -47,26 +51,25 @@ const App = () => {
     }
   }
 
-  // Handle register form submit
+  // Handle register
   function handleRegister(username, password) {
     if (registeredUsers.find((u) => u.username === username)) {
       alert("Username already exists");
       return false;
     }
-    const newUser = { username, password };
-    setRegisteredUsers([...registeredUsers, newUser]);
-    alert("Registration successful! You can now login.");
+    setRegisteredUsers([...registeredUsers, { username, password }]);
+    alert("Registration successful!");
     setAuthView("login");
     return true;
   }
 
-  // Handle logout
+  // Logout
   function handleLogout() {
     setUser(null);
     setAuthView("login");
   }
 
-  // Render main app content
+  // Render main app content router
   const renderPage = () => {
     switch (activePage) {
       case "Dashboard":
@@ -75,16 +78,18 @@ const App = () => {
         return <Users />;
       case "Employee":
         return <Employee />;
+      case "Appointment": // <-- ADDED
+        return <Appointment />;
+      case "Treatment Records":
+        return <TreatmentRecords />;
       case "Settings":
         return <Settings />;
-      case "Treatment Records": // <-- new case
-        return <TreatmentRecords />;
       default:
         return <Dashboard />;
     }
   };
 
-  // Render based on auth view
+  // Render login/register
   if (!user) {
     return (
       <>
@@ -94,6 +99,7 @@ const App = () => {
             onSwitchToRegister={() => setAuthView("register")}
           />
         )}
+
         {authView === "register" && (
           <Register
             onRegister={handleRegister}
@@ -104,7 +110,7 @@ const App = () => {
     );
   }
 
-  // Render main app UI after login
+  // Render main app layout
   return (
     <div className="flex h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100 font-sans text-gray-900">
       <Sidebar
@@ -114,11 +120,13 @@ const App = () => {
       />
 
       <div className="flex flex-col flex-1 overflow-hidden">
-        <Header onSidebarToggle={toggleSidebar} onLogout={handleLogout} user={user} />
+        <Header
+          onSidebarToggle={toggleSidebar}
+          onLogout={handleLogout}
+          user={user}
+        />
 
-        <main className="flex-1 overflow-auto">
-          {renderPage()}
-        </main>
+        <main className="flex-1 overflow-auto">{renderPage()}</main>
 
         <Footer />
       </div>

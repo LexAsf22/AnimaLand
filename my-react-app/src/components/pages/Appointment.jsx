@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export default function Appointments() {
+export default function Appointment() {
   const initialAppointments = [
     { id: 1, patient: "Buddy", species: "Dog", owner: "Alice Johnson", date: "2025-12-05", time: "10:00 AM", status: "Scheduled" },
     { id: 2, patient: "Whiskers", species: "Cat", owner: "Michael Lee", date: "2025-12-05", time: "11:30 AM", status: "Completed" },
