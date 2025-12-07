@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom"; // Added Router and Routes
 
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
@@ -16,15 +17,17 @@ import Appointment from "./components/pages/Appointment";
 import Login from "./components/auth/AdminLogin";
 import Register from "./components/auth/Register";
 
+// Auth context
+import { useAuth } from './context/AuthContext.js'; // Import the Auth context
+import ProtectedRoute from './components/ProtectedRoute'; // Import the ProtectedRoute
+
 const App = () => {
   const [sidebarToggle, setSidebarToggle] = useState(true);
   const [activePage, setActivePage] = useState("Dashboard");
 
   // Auth state
-  const [user, setUser] = useState(null);
-  const [registeredUsers, setRegisteredUsers] = useState([
-    { username: "admin", password: "admin123" },
-  ]);
+  const { user, setUser, token } = useAuth(); // Use context to get user and token
+
   const [authView, setAuthView] = useState("login");
 
   // Toggle sidebar
@@ -39,9 +42,8 @@ const App = () => {
 
   // Handle login
   function handleLogin(username, password) {
-    const foundUser = registeredUsers.find(
-      (u) => u.username === username && u.password === password
-    );
+    // For the purpose of this example, we mock the login logic
+    const foundUser = { username, password, token: "mockToken" }; // Mocked user
 
     if (foundUser) {
       setUser(foundUser);
@@ -53,14 +55,8 @@ const App = () => {
 
   // Handle register
   function handleRegister(username, password) {
-    if (registeredUsers.find((u) => u.username === username)) {
-      alert("Username already exists");
-      return false;
-    }
-    setRegisteredUsers([...registeredUsers, { username, password }]);
     alert("Registration successful!");
     setAuthView("login");
-    return true;
   }
 
   // Logout
@@ -69,68 +65,101 @@ const App = () => {
     setAuthView("login");
   }
 
-  // Render main app content router
-  const renderPage = () => {
-    switch (activePage) {
-      case "Dashboard":
-        return <Dashboard />;
-      case "Users":
-        return <Users />;
-      case "Employee":
-        return <Employee />;
-      case "Appointment": // <-- ADDED
-        return <Appointment />;
-      case "Treatment Records":
-        return <TreatmentRecords />;
-      case "Settings":
-        return <Settings />;
-      default:
-        return <Dashboard />;
-    }
-  };
-
   // Render login/register
   if (!user) {
     return (
       <>
         {authView === "login" && (
-          <Login
-            onLogin={handleLogin}
-            onSwitchToRegister={() => setAuthView("register")}
-          />
+          <Login onLogin={handleLogin} onSwitchToRegister={() => setAuthView("register")} />
         )}
 
         {authView === "register" && (
-          <Register
-            onRegister={handleRegister}
-            onSwitchToLogin={() => setAuthView("login")}
-          />
+          <Register onRegister={handleRegister} onSwitchToLogin={() => setAuthView("login")} />
         )}
       </>
     );
   }
 
-  // Render main app layout
   return (
-    <div className="flex h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100 font-sans text-gray-900">
-      <Sidebar
-        status={sidebarToggle}
-        activePage={activePage}
-        onMenuClick={handleMenuClick}
-      />
-
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <Header
-          onSidebarToggle={toggleSidebar}
-          onLogout={handleLogout}
-          user={user}
+    <Router>
+      <div className="flex h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100 font-sans text-gray-900">
+        <Sidebar
+          status={sidebarToggle}
+          activePage={activePage}
+          onMenuClick={handleMenuClick}
         />
 
-        <main className="flex-1 overflow-auto">{renderPage()}</main>
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <Header
+            onSidebarToggle={toggleSidebar}
+            onLogout={handleLogout}
+            user={user}
+          />
 
-        <Footer />
+          <main className="flex-1 overflow-auto">
+            <Routes>
+              {/* Define the routes */}
+              <Route path="/login" element={<Login onLogin={handleLogin} />} />
+              <Route path="/register" element={<Register onRegister={handleRegister} />} />
+
+              {/* Protected Routes */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/users"
+                element={
+                  <ProtectedRoute>
+                    <Users />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/employee"
+                element={
+                  <ProtectedRoute>
+                    <Employee />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/appointment"
+                element={
+                  <ProtectedRoute>
+                    <Appointment />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/treatment-records"
+                element={
+                  <ProtectedRoute>
+                    <TreatmentRecords />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                }
+              />
+              {/* Redirect to dashboard by default */}
+              <Route path="*" element={<Navigate to="/dashboard" />} />
+            </Routes>
+          </main>
+
+          <Footer />
+        </div>
       </div>
-    </div>
+    </Router>
   );
 };
 
