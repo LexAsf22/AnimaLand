@@ -4,32 +4,32 @@ import com.animaland.web.DTO.AppointmentDTO;
 import com.animaland.web.models.*;
 import com.animaland.web.repository.*;
 import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
-// Use fully qualified annotation to avoid conflict
-@org.springframework.stereotype.Service
+@Service
 public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
     private final PetRepository petRepository;
-    private final ServiceRepository serviceRepository;
+    private final com.animaland.web.repository.ServiceRepository serviceRepository;
     private final EmployeeRepository employeeRepository;
-    private final TreatmentRepository treatmentRepository;
+    private final TreatmentRecordRepository treatmentRecordRepository;
 
     public AppointmentService(
             AppointmentRepository appointmentRepository,
             PetRepository petRepository,
-            ServiceRepository serviceRepository,
+            com.animaland.web.repository.ServiceRepository serviceRepository,
             EmployeeRepository employeeRepository,
-            TreatmentRepository treatmentRepository
+            TreatmentRecordRepository treatmentRecordRepository
     ) {
         this.appointmentRepository = appointmentRepository;
         this.petRepository = petRepository;
         this.serviceRepository = serviceRepository;
         this.employeeRepository = employeeRepository;
-        this.treatmentRepository = treatmentRepository;
+        this.treatmentRecordRepository = treatmentRecordRepository;
     }
 
     public List<Appointment> findAll() {
@@ -65,7 +65,7 @@ public class AppointmentService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pet not found"));
         appointment.setPet(pet);
 
-        // Service (use fully-qualified Service model)
+        // Service
         com.animaland.web.models.Service service =
                 serviceRepository.findById(dto.getServiceId())
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service not found"));
@@ -78,7 +78,7 @@ public class AppointmentService {
 
         // Treatments (optional)
         if (dto.getTreatmentIds() != null && !dto.getTreatmentIds().isEmpty()) {
-            List<Treatment> treatments = treatmentRepository.findAllById(dto.getTreatmentIds());
+            List<TreatmentRecord> treatments = treatmentRecordRepository.findAllById(dto.getTreatmentIds());
             appointment.setTreatments(treatments);
         }
     }

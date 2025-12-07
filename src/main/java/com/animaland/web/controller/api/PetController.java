@@ -5,6 +5,7 @@ import com.animaland.web.models.Pet;
 import com.animaland.web.service.PetService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -21,27 +22,52 @@ public class PetController {
         this.petService = petService;
     }
 
+    // --------------------------
+    // GET ALL PETS
+    // --------------------------
     @GetMapping
-    public List<Pet> getAllPets() {
-        return petService.findAll();
+    public ResponseEntity<List<Pet>> getAllPets() {
+        List<Pet> pets = petService.findAll();
+        return ResponseEntity.ok(pets);
     }
 
+    // --------------------------
+    // CREATE PET
+    // --------------------------
     @PostMapping
-    public Pet createPet(@Valid @RequestBody PetDTO petDTO) {
-        return petService.save(petDTO);
+    public ResponseEntity<Pet> createPet(@Valid @RequestBody PetDTO petDTO) {
+        Pet created = petService.save(petDTO);
+        return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
+    // --------------------------
+    // UPDATE PET
+    // --------------------------
     @PutMapping("/{id}")
-    public Pet updatePet(@PathVariable Long id, @Valid @RequestBody PetDTO petDTO) {
-        Pet pet = petService.findById(id);
-        if (pet == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Pet not found");
-        return petService.updatePet(pet, petDTO);
+    public ResponseEntity<Pet> updatePet(
+            @PathVariable Long id,
+            @Valid @RequestBody PetDTO petDTO
+    ) {
+        Pet existing = petService.findById(id);
+        if (existing == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Pet not found");
+        }
+
+        Pet updated = petService.updatePet(existing, petDTO);
+        return ResponseEntity.ok(updated);
     }
 
+    // --------------------------
+    // DELETE PET
+    // --------------------------
     @DeleteMapping("/{id}")
-    public void deletePet(@PathVariable Long id) {
-        Pet pet = petService.findById(id);
-        if (pet == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Pet not found");
+    public ResponseEntity<Void> deletePet(@PathVariable Long id) {
+        Pet existing = petService.findById(id);
+        if (existing == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Pet not found");
+        }
+
         petService.deletePet(id);
+        return ResponseEntity.noContent().build();
     }
 }

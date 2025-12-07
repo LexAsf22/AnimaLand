@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 
-public class TreatmentDTO {
+public class TreatmentRecordDTO {
 
     private Long treatmentId;
 

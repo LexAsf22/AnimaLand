@@ -11,9 +11,16 @@ public class Appointment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "appointment_id")
     private Long appointmentId;
 
+    @Column(name = "appointment_datetime", nullable = false)
     private LocalDateTime appointmentDatetime;
+
+    @Column(nullable = false)
+    private String status;
+
+    @Column(nullable = false)
     private String remarks;
 
     @ManyToOne
@@ -30,15 +37,18 @@ public class Appointment {
     private Employee employee;
 
     @OneToMany(mappedBy = "appointment", fetch = FetchType.LAZY)
-    private List<Treatment> treatments;
+    private List<TreatmentRecord> treatmentRecords;
 
-    // Getters and setters
+    // Getters and Setters
 
     public Long getAppointmentId() { return appointmentId; }
     public void setAppointmentId(Long appointmentId) { this.appointmentId = appointmentId; }
 
     public LocalDateTime getAppointmentDatetime() { return appointmentDatetime; }
     public void setAppointmentDatetime(LocalDateTime appointmentDatetime) { this.appointmentDatetime = appointmentDatetime; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
     public String getRemarks() { return remarks; }
     public void setRemarks(String remarks) { this.remarks = remarks; }
@@ -52,6 +62,6 @@ public class Appointment {
     public Employee getEmployee() { return employee; }
     public void setEmployee(Employee employee) { this.employee = employee; }
 
-    public List<Treatment> getTreatments() { return treatments; }
-    public void setTreatments(List<Treatment> treatments) { this.treatments = treatments; }
+    public List<TreatmentRecord> getTreatments() { return treatmentRecords; }
+    public void setTreatments(List<TreatmentRecord> treatmentRecords) { this.treatmentRecords = treatmentRecords; }
 }

@@ -12,6 +12,9 @@ public class AppointmentDTO {
     @NotNull(message = "Appointment date and time is required")
     private LocalDateTime appointmentDatetime;
 
+    @NotBlank(message = "Status is required")
+    private String status;
+
     @NotBlank(message = "Remarks are required")
     private String remarks;
 
@@ -26,59 +29,29 @@ public class AppointmentDTO {
 
     private List<Long> treatmentIds;
 
-    public Long getAppointmentId() {
-        return appointmentId;
-    }
+    // Getters & Setters
 
-    public void setAppointmentId(Long appointmentId) {
-        this.appointmentId = appointmentId;
-    }
+    public Long getAppointmentId() { return appointmentId; }
+    public void setAppointmentId(Long appointmentId) { this.appointmentId = appointmentId; }
 
-    public LocalDateTime getAppointmentDatetime() {
-        return appointmentDatetime;
-    }
+    public LocalDateTime getAppointmentDatetime() { return appointmentDatetime; }
+    public void setAppointmentDatetime(LocalDateTime appointmentDatetime) { this.appointmentDatetime = appointmentDatetime; }
 
-    public void setAppointmentDatetime(LocalDateTime appointmentDatetime) {
-        this.appointmentDatetime = appointmentDatetime;
-    }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
-    public String getRemarks() {
-        return remarks;
-    }
+    public String getRemarks() { return remarks; }
+    public void setRemarks(String remarks) { this.remarks = remarks; }
 
-    public void setRemarks(String remarks) {
-        this.remarks = remarks;
-    }
+    public Long getPetId() { return petId; }
+    public void setPetId(Long petId) { this.petId = petId; }
 
-    public Long getPetId() {
-        return petId;
-    }
+    public Long getServiceId() { return serviceId; }
+    public void setServiceId(Long serviceId) { this.serviceId = serviceId; }
 
-    public void setPetId(Long petId) {
-        this.petId = petId;
-    }
+    public Long getStaffId() { return staffId; }
+    public void setStaffId(Long staffId) { this.staffId = staffId; }
 
-    public Long getServiceId() {
-        return serviceId;
-    }
-
-    public void setServiceId(Long serviceId) {
-        this.serviceId = serviceId;
-    }
-
-    public Long getStaffId() {
-        return staffId;
-    }
-
-    public void setStaffId(Long staffId) {
-        this.staffId = staffId;
-    }
-
-    public List<Long> getTreatmentIds() {
-        return treatmentIds;
-    }
-
-    public void setTreatmentIds(List<Long> treatmentIds) {
-        this.treatmentIds = treatmentIds;
-    }
+    public List<Long> getTreatmentIds() { return treatmentIds; }
+    public void setTreatmentIds(List<Long> treatmentIds) { this.treatmentIds = treatmentIds; }
 }

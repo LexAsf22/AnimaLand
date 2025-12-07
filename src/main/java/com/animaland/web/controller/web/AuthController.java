@@ -1,8 +1,8 @@
 package com.animaland.web.controller.web;
 
-import com.animaland.web.DTO.UserDTO;
-import com.animaland.web.models.User;
-import com.animaland.web.service.UserService;
+import com.animaland.web.DTO.EmployeeDTO;
+import com.animaland.web.models.Employee;
+import com.animaland.web.service.EmployeeService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -11,10 +11,10 @@ import org.springframework.web.bind.annotation.*;
 @Controller
 public class AuthController {
 
-    private final UserService userService;
+    private final EmployeeService employeeService;
 
-    public AuthController(UserService userService) {
-        this.userService = userService;
+    public AuthController(EmployeeService employeeService) {
+        this.employeeService = employeeService;
     }
 
     // Show login page
@@ -25,51 +25,51 @@ public class AuthController {
 
     // Handle login form submission
     @PostMapping("/login")
-    public String loginUser(@RequestParam String email,
+    public String loginUser(@RequestParam String username,
                             @RequestParam String password,
                             HttpSession session,
                             Model model) {
 
-        User user = userService.authenticate(email, password);
+        // Authenticate employee
+        Employee employee = employeeService.findByUsername(username);
 
-        if (user == null) {
-            model.addAttribute("error", "Invalid email or password");
+        if (employee == null || !employee.getPassword().equals(password)) {
+            model.addAttribute("error", "Invalid username or password");
             return "login";
         }
 
-        session.setAttribute("USER_SESSION", user);
+        // Set session attribute with authenticated employee
+        session.setAttribute("USER_SESSION", employee);
         return "redirect:/";  // redirect to homepage or dashboard
     }
 
     // Show registration page
     @GetMapping("/register")
     public String showRegisterForm(Model model) {
-        model.addAttribute("user", new UserDTO());
+        model.addAttribute("employee", new EmployeeDTO());
         return "register";
     }
 
-    // Process registration
+    // Process registration (Employee registration)
     @PostMapping("/register")
-    public String register(@RequestParam String fullName,
-                           @RequestParam String email,
-                           @RequestParam String phoneNumber,
-                           @RequestParam String address,
-                           @RequestParam String password) {
+    public String register(@RequestParam String firstName,
+                           @RequestParam String lastName,
+                           @RequestParam String username,
+                           @RequestParam String password,
+                           @RequestParam String role,
+                           @RequestParam String contactNumber) {
 
-        // Convert fullName → firstName + lastName
-        String[] parts = fullName.split(" ", 2);
-        String first = parts[0];
-        String last = parts.length > 1 ? parts[1] : "";
-
-        UserDTO dto = new UserDTO();
-        dto.setFirstName(first);
-        dto.setLastName(last);
-        dto.setEmail(email);
-        dto.setPhoneNumber(phoneNumber);
-        dto.setAddress(address);
+        // Create EmployeeDTO and set properties
+        EmployeeDTO dto = new EmployeeDTO();
+        dto.setFirstName(firstName);
+        dto.setLastName(lastName);
+        dto.setUsername(username);
         dto.setPassword(password);
+        dto.setRole(role);
+        dto.setContactNumber(contactNumber);
 
-        userService.save(dto);
+        // Save the employee using EmployeeService
+        employeeService.save(dto);
 
         return "redirect:/login";
     }

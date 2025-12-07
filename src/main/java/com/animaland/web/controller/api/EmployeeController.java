@@ -5,6 +5,7 @@ import com.animaland.web.models.Employee;
 import com.animaland.web.service.EmployeeService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -21,27 +22,52 @@ public class EmployeeController {
         this.employeeService = employeeService;
     }
 
+    // --------------------------
+    // GET ALL EMPLOYEES
+    // --------------------------
     @GetMapping
-    public List<Employee> getAllEmployees() {
-        return employeeService.findAll();
+    public ResponseEntity<List<Employee>> getAllEmployees() {
+        List<Employee> employees = employeeService.findAll();
+        return ResponseEntity.ok(employees);
     }
 
+    // --------------------------
+    // CREATE EMPLOYEE
+    // --------------------------
     @PostMapping
-    public Employee createEmployee(@Valid @RequestBody EmployeeDTO employeeDTO) {
-        return employeeService.save(employeeDTO);
+    public ResponseEntity<Employee> createEmployee(@Valid @RequestBody EmployeeDTO employeeDTO) {
+        Employee created = employeeService.save(employeeDTO);
+        return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
+    // --------------------------
+    // UPDATE EMPLOYEE
+    // --------------------------
     @PutMapping("/{id}")
-    public Employee updateEmployee(@PathVariable Long id, @Valid @RequestBody EmployeeDTO employeeDTO) {
-        Employee employee = employeeService.findById(id);
-        if (employee == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee not found");
-        return employeeService.updateEmployee(employee, employeeDTO);
+    public ResponseEntity<Employee> updateEmployee(
+            @PathVariable Long id,
+            @Valid @RequestBody EmployeeDTO employeeDTO
+    ) {
+        Employee existing = employeeService.findById(id);
+        if (existing == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee not found");
+        }
+
+        Employee updated = employeeService.updateEmployee(existing, employeeDTO);
+        return ResponseEntity.ok(updated);
     }
 
+    // --------------------------
+    // DELETE EMPLOYEE
+    // --------------------------
     @DeleteMapping("/{id}")
-    public void deleteEmployee(@PathVariable Long id) {
-        Employee employee = employeeService.findById(id);
-        if (employee == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee not found");
+    public ResponseEntity<Void> deleteEmployee(@PathVariable Long id) {
+        Employee existing = employeeService.findById(id);
+        if (existing == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee not found");
+        }
+
         employeeService.deleteEmployee(id);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -2,12 +2,12 @@ package com.animaland.web.service;
 
 import com.animaland.web.DTO.PetDTO;
 import com.animaland.web.models.Pet;
-import com.animaland.web.models.User;
+import com.animaland.web.models.Owner;
 import com.animaland.web.repository.PetRepository;
-import com.animaland.web.repository.UserRepository;
+import com.animaland.web.repository.OwnerRepository;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -15,11 +15,11 @@ import java.util.List;
 public class PetService {
 
     private final PetRepository petRepository;
-    private final UserRepository userRepository;
+    private final OwnerRepository ownerRepository;
 
-    public PetService(PetRepository petRepository, UserRepository userRepository) {
+    public PetService(PetRepository petRepository, OwnerRepository ownerRepository) {
         this.petRepository = petRepository;
-        this.userRepository = userRepository;
+        this.ownerRepository = ownerRepository;
     }
 
     // --------------------------------------------
@@ -61,8 +61,8 @@ public class PetService {
         pet.setAge(dto.getAge());
         pet.setGender(dto.getGender());
 
-        // Load Owner
-        User owner = userRepository.findById(dto.getOwnerId())
+        // Load Owner (correct Owner type, not User)
+        Owner owner = ownerRepository.findById(dto.getOwnerId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Owner not found"
                 ));

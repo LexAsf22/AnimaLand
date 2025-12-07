@@ -10,15 +10,23 @@ public class Service {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "service_id")
     private Long serviceId;
 
+    @Column(name = "service_name", nullable = false)
     private String serviceName;
+
+    @Column(name = "service_type", nullable = false)
     private String serviceType;
+
+    @Column(nullable = false)
     private Double price;
+
+    @Column(nullable = false)
     private Integer duration;
 
+    @OneToMany(mappedBy = "service", fetch = FetchType.LAZY)
     @JsonManagedReference("service-appointments")
-    @OneToMany(mappedBy = "service")
     private List<Appointment> appointments;
 
     public Long getServiceId() { return serviceId; }

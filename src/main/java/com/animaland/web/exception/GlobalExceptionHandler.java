@@ -5,8 +5,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -31,7 +31,7 @@ public class GlobalExceptionHandler {
         }
 
         model.addAttribute("message", ex.getReason());
-        return "error/error";
+        return "error/error";  // Renders error.html
     }
 
     // -----------------------------
@@ -56,7 +56,7 @@ public class GlobalExceptionHandler {
                     .append("<br>");
         });
         model.addAttribute("message", errorsHtml.toString());
-        return "error/error";
+        return "error/error";  // Renders error.html
     }
 
     // -----------------------------
@@ -73,7 +73,7 @@ public class GlobalExceptionHandler {
         }
 
         model.addAttribute("message", ex.getMessage());
-        return "error/error";
+        return "error/error";  // Renders error.html
     }
 
     // -----------------------------
@@ -90,7 +90,7 @@ public class GlobalExceptionHandler {
         }
 
         model.addAttribute("message", "Oops! Something went wrong. Please try again later.");
-        return "error/error";
+        return "error/error";  // Renders error.html
     }
 
     // -----------------------------

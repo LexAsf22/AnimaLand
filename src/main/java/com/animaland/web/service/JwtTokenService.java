@@ -32,7 +32,6 @@ public class JwtTokenService {
                 .build();
     }
 
-
     // -----------------------------------------------------
     // CREATE JWT TOKEN
     // -----------------------------------------------------
@@ -41,19 +40,19 @@ public class JwtTokenService {
         Instant now = Instant.now();
         long expirationSeconds = 60 * 60 * 24; // 24 hours
 
-        String username = authentication.getName(); // email
+        String username = authentication.getName(); // employee's username (used for login)
 
-        // ROLE (first role)
+        // ROLE (fetch from authorities)
         String role = authentication.getAuthorities().stream()
                 .findFirst()
                 .map(a -> a.getAuthority())
-                .orElse("USER");
+                .orElse("USER");  // default to "USER" if no role is present
 
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .subject(username)
                 .issuedAt(now)
                 .expiresAt(now.plusSeconds(expirationSeconds))
-                .claim("role", role)
+                .claim("role", role)  // storing role as a claim
                 .issuer("animaland-api")
                 .build();
 
@@ -73,11 +72,11 @@ public class JwtTokenService {
     }
 
     // -----------------------------------------------------
-    // GET USERNAME (EMAIL)
+    // GET USERNAME (EMPLOYEE'S USERNAME)
     // -----------------------------------------------------
     public String extractUsername(String token) {
         Jwt jwt = jwtDecoder.decode(token);
-        return jwt.getSubject();
+        return jwt.getSubject();  // returns the employee's username (not email)
     }
 
     // -----------------------------------------------------

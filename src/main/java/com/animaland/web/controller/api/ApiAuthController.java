@@ -2,10 +2,9 @@ package com.animaland.web.controller.api;
 
 import com.animaland.web.DTO.AuthRequest;
 import com.animaland.web.DTO.AuthResponse;
-import com.animaland.web.DTO.RegisterRequest;
-import com.animaland.web.models.User;
+import com.animaland.web.models.Employee;
+import com.animaland.web.service.EmployeeService;
 import com.animaland.web.service.JwtTokenService;
-import com.animaland.web.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -17,26 +16,26 @@ public class ApiAuthController {
 
     private final AuthenticationManager authenticationManager;
     private final JwtTokenService jwtTokenService;
-    private final UserService userService;
+    private final EmployeeService employeeService;
 
     public ApiAuthController(AuthenticationManager authenticationManager,
                              JwtTokenService jwtTokenService,
-                             UserService userService) {
+                             EmployeeService employeeService) {
         this.authenticationManager = authenticationManager;
         this.jwtTokenService = jwtTokenService;
-        this.userService = userService;
+        this.employeeService = employeeService;
     }
 
     // =========================================
-    // LOGIN
+    // LOGIN (Employee)
     // =========================================
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody AuthRequest request) {
 
-        // Authenticate user
+        // Authenticate Employee using username
         var authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        request.username(),    // username = email
+                        request.username(), // login via username
                         request.password()
                 )
         );
@@ -44,41 +43,12 @@ public class ApiAuthController {
         // Generate JWT token
         String token = jwtTokenService.generateToken(authentication);
 
-        User user = userService.findByEmail(request.username());
+        Employee employee = employeeService.findByUsername(request.username());
 
         return new AuthResponse(
                 token,
-                user.getEmail(),
+                employee.getUsername(),
                 "Login successful"
-        );
-    }
-
-    // =========================================
-    // REGISTER + AUTO LOGIN
-    // =========================================
-    @PostMapping("/register")
-    public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
-
-        // Create account
-        User newUser = userService.registerUser(
-                request.username(),    // again username = email
-                request.password()
-        );
-
-        // Auto login
-        var authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        newUser.getEmail(),
-                        request.password()
-                )
-        );
-
-        String token = jwtTokenService.generateToken(authentication);
-
-        return new AuthResponse(
-                token,
-                newUser.getEmail(),
-                "Registration successful"
         );
     }
 
@@ -98,16 +68,16 @@ public class ApiAuthController {
             return new AuthResponse(null, null, "Token invalid");
         }
 
-        String email = jwtTokenService.extractUsername(token);
-        User user = userService.findByEmail(email);
+        String username = jwtTokenService.extractUsername(token);
+        Employee employee = employeeService.findByUsername(username);
 
-        if (user == null) {
-            return new AuthResponse(null, null, "User not found");
+        if (employee == null) {
+            return new AuthResponse(null, null, "Employee not found");
         }
 
         return new AuthResponse(
                 token,
-                user.getEmail(),
+                employee.getUsername(),
                 "Token valid"
         );
     }

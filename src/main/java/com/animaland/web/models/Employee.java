@@ -1,8 +1,6 @@
 package com.animaland.web.models;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
-import java.util.List;
 
 @Entity
 @Table(name = "employees")
@@ -10,39 +8,81 @@ public class Employee {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long staffId;
+    @Column(name = "employee_id")
+    private Long employeeId;  // This is the employee_id (PK)
 
+    @Column(name = "first_name", nullable = false)
     private String firstName;
+
+    @Column(name = "last_name", nullable = false)
     private String lastName;
 
-    @Column(unique = true)
-    private String email;
+    @Column(nullable = false, unique = true)
+    private String username;  // Used for login (not email)
 
-    private String role;
+    @Column(nullable = false)
+    private String password;  // Password, should be encrypted
+
+    @Column(nullable = false)
+    private String role;  // Role could be "staff" or "veterinarian"
+
+    @Column(name = "contact_number", nullable = false)
     private String contactNumber;
 
-    @JsonManagedReference("employee-appointments")
-    @OneToMany(mappedBy = "employee")
-    private List<Appointment> appointments;
+    // Getters and Setters
+    public Long getEmployeeId() {
+        return employeeId;
+    }
 
-    public Long getStaffId() { return staffId; }
-    public void setStaffId(Long staffId) { this.staffId = staffId; }
+    public void setEmployeeId(Long employeeId) {
+        this.employeeId = employeeId;
+    }
 
-    public String getFirstName() { return firstName; }
-    public void setFirstName(String firstName) { this.firstName = firstName; }
+    public String getFirstName() {
+        return firstName;
+    }
 
-    public String getLastName() { return lastName; }
-    public void setLastName(String lastName) { this.lastName = lastName; }
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
 
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+    public String getLastName() {
+        return lastName;
+    }
 
-    public String getRole() { return role; }
-    public void setRole(String role) { this.role = role; }
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
 
-    public String getContactNumber() { return contactNumber; }
-    public void setContactNumber(String contactNumber) { this.contactNumber = contactNumber; }
+    public String getUsername() {
+        return username;
+    }
 
-    public List<Appointment> getAppointments() { return appointments; }
-    public void setAppointments(List<Appointment> appointments) { this.appointments = appointments; }
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+
+    public String getContactNumber() {
+        return contactNumber;
+    }
+
+    public void setContactNumber(String contactNumber) {
+        this.contactNumber = contactNumber;
+    }
 }

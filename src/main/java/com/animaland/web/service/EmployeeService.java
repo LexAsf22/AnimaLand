@@ -3,23 +3,22 @@ package com.animaland.web.service;
 import com.animaland.web.DTO.EmployeeDTO;
 import com.animaland.web.models.Employee;
 import com.animaland.web.repository.EmployeeRepository;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-@org.springframework.stereotype.Service
+@Service
 public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public EmployeeService(EmployeeRepository employeeRepository) {
+    public EmployeeService(EmployeeRepository employeeRepository,
+                           PasswordEncoder passwordEncoder) {
         this.employeeRepository = employeeRepository;
+        this.passwordEncoder = passwordEncoder;
     }
-
-    // --------------------------------------------
-    // CRUD METHODS
-    // --------------------------------------------
 
     public List<Employee> findAll() {
         return employeeRepository.findAll();
@@ -29,28 +28,32 @@ public class EmployeeService {
         return employeeRepository.findById(id).orElse(null);
     }
 
-    public Employee save(EmployeeDTO dto) {
+    public Employee findByUsername(String username) {
+        return employeeRepository.findByUsername(username).orElse(null);
+    }
 
-        // Prevent duplicate email
-        if (employeeRepository.existsByEmail(dto.getEmail())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email already in use");
+    public Employee save(EmployeeDTO dto) {
+        if (employeeRepository.existsByUsername(dto.getUsername())) {
+            throw new RuntimeException("Username already exists.");
         }
 
         Employee employee = new Employee();
         applyDtoToEmployee(employee, dto);
-
+        employee.setPassword(passwordEncoder.encode(dto.getPassword())); // Encrypt password
         return employeeRepository.save(employee);
     }
 
     public Employee updateEmployee(Employee employee, EmployeeDTO dto) {
-
-        // Check if updating email to an existing user
-        if (!employee.getEmail().equals(dto.getEmail()) &&
-                employeeRepository.existsByEmail(dto.getEmail())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email already in use");
+        if (!employee.getUsername().equals(dto.getUsername()) &&
+                employeeRepository.existsByUsername(dto.getUsername())) {
+            throw new RuntimeException("Username already exists.");
         }
 
         applyDtoToEmployee(employee, dto);
+        if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
+            employee.setPassword(passwordEncoder.encode(dto.getPassword())); // Encrypt password
+        }
+
         return employeeRepository.save(employee);
     }
 
@@ -58,14 +61,10 @@ public class EmployeeService {
         employeeRepository.deleteById(id);
     }
 
-    // --------------------------------------------
-    // DTO → ENTITY MAPPING
-    // --------------------------------------------
-
     private void applyDtoToEmployee(Employee employee, EmployeeDTO dto) {
         employee.setFirstName(dto.getFirstName());
         employee.setLastName(dto.getLastName());
-        employee.setEmail(dto.getEmail());
+        employee.setUsername(dto.getUsername());
         employee.setRole(dto.getRole());
         employee.setContactNumber(dto.getContactNumber());
     }

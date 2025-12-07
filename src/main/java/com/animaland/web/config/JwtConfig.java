@@ -12,6 +12,7 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 
 import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 
 @Configuration
 public class JwtConfig {
@@ -21,15 +22,16 @@ public class JwtConfig {
 
     @Bean
     public JwtEncoder jwtEncoder() {
-        // Using an immutable secret for signing JWT
-        return new NimbusJwtEncoder(new ImmutableSecret<>(jwtSecretKey.getBytes()));
+        // Encode JWT using an immutable secret key (HMAC)
+        byte[] secretBytes = jwtSecretKey.getBytes(StandardCharsets.UTF_8);
+        return new NimbusJwtEncoder(new ImmutableSecret<>(secretBytes));
     }
 
     @Bean
     public JwtDecoder jwtDecoder() {
-        // Convert secret string into HMAC SHA256 key
-        byte[] keyBytes = jwtSecretKey.getBytes();
-        SecretKeySpec secretKey = new SecretKeySpec(keyBytes, "HmacSHA256");
+        // Decode JWT using the same secret key (HMAC)
+        byte[] secretBytes = jwtSecretKey.getBytes(StandardCharsets.UTF_8);
+        SecretKeySpec secretKey = new SecretKeySpec(secretBytes, "HmacSHA256");
 
         return NimbusJwtDecoder.withSecretKey(secretKey)
                 .macAlgorithm(MacAlgorithm.HS256)

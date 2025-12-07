@@ -1,12 +1,10 @@
 package com.animaland.web.DTO;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
 public class EmployeeDTO {
 
-    private Long staffId;
+    private Long employeeId;  // Optional in DTO, but useful for updates.
 
     @NotBlank(message = "First name is required")
     private String firstName;
@@ -14,9 +12,11 @@ public class EmployeeDTO {
     @NotBlank(message = "Last name is required")
     private String lastName;
 
-    @Email(message = "Invalid email format")
-    @NotBlank(message = "Email is required")
-    private String email;
+    @NotBlank(message = "Username is required")
+    private String username;
+
+    @NotBlank(message = "Password is required")
+    private String password;
 
     @NotBlank(message = "Role is required")
     private String role;
@@ -24,12 +24,13 @@ public class EmployeeDTO {
     @NotBlank(message = "Contact number is required")
     private String contactNumber;
 
-    public Long getStaffId() {
-        return staffId;
+    // Getters and Setters
+    public Long getEmployeeId() {
+        return employeeId;
     }
 
-    public void setStaffId(Long staffId) {
-        this.staffId = staffId;
+    public void setEmployeeId(Long employeeId) {
+        this.employeeId = employeeId;
     }
 
     public String getFirstName() {
@@ -48,12 +49,20 @@ public class EmployeeDTO {
         this.lastName = lastName;
     }
 
-    public String getEmail() {
-        return email;
+    public String getUsername() {
+        return username;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     public String getRole() {

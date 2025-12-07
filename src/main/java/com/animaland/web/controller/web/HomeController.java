@@ -132,7 +132,7 @@ public class HomeController {
         dto.setRemarks(appointment.getRemarks());
         dto.setPetId(appointment.getPet().getPetId());
         dto.setServiceId(appointment.getService().getServiceId());
-        dto.setStaffId(appointment.getEmployee().getStaffId());
+        dto.setStaffId(appointment.getEmployee().getEmployeeId());  // Fix this line
 
         // Add to model
         model.addAttribute("appointment", dto);

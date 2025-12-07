@@ -11,24 +11,34 @@ public class Pet {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "pet_id")
     private Long petId;
 
+    @Column(nullable = false)
     private String name;
+
+    @Column(nullable = false)
     private String species;
+
+    @Column(nullable = false)
     private String breed;
+
+    @Column(nullable = false)
     private int age;
+
+    @Column(nullable = false)
     private String gender;
 
     @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    @JsonBackReference(value = "user-pets")
-    private User owner;
+    @JoinColumn(name = "owner_id", nullable = false)
+    @JsonBackReference(value = "owner-pets")
+    private Owner owner;
 
     @OneToMany(mappedBy = "pet", fetch = FetchType.LAZY)
     @JsonManagedReference(value = "pet-appointments")
     private List<Appointment> appointments;
 
-    // Getters and setters
+    // Getters and Setters
 
     public Long getPetId() { return petId; }
     public void setPetId(Long petId) { this.petId = petId; }
@@ -48,8 +58,8 @@ public class Pet {
     public String getGender() { return gender; }
     public void setGender(String gender) { this.gender = gender; }
 
-    public User getOwner() { return owner; }
-    public void setOwner(User owner) { this.owner = owner; }
+    public Owner getOwner() { return owner; }
+    public void setOwner(Owner owner) { this.owner = owner; }
 
     public List<Appointment> getAppointments() { return appointments; }
     public void setAppointments(List<Appointment> appointments) { this.appointments = appointments; }
