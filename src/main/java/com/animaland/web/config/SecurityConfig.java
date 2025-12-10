@@ -5,9 +5,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
@@ -17,99 +19,96 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
+import java.util.List;
+
+import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 public class SecurityConfig {
 
     private final CustomUserDetailsService customUserDetailsService;
 
-    public SecurityConfig(CustomUserDetailsService customUserDetailsService) {
-        this.customUserDetailsService = customUserDetailsService;
+    public SecurityConfig(CustomUserDetailsService userDetailsService) {
+        this.customUserDetailsService = userDetailsService;
     }
 
-    // ---------- PASSWORD ENCODER ----------
+    /** -----------------------------------------
+     * Password Encoder
+     * ----------------------------------------- */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // ---------- AUTHENTICATION MANAGER ----------
+    /** -----------------------------------------
+     * Authentication Manager (DaoAuthenticationProvider)
+     * ----------------------------------------- */
     @Bean
-    public AuthenticationManager authenticationManager(PasswordEncoder passwordEncoder) {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
-        provider.setUserDetailsService(customUserDetailsService);
-        provider.setPasswordEncoder(passwordEncoder);
-        return new org.springframework.security.authentication.ProviderManager(provider);
+    public AuthenticationManager authManager(
+            UserDetailsService userDetailsService,
+            PasswordEncoder passwordEncoder) {
+
+        var authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(userDetailsService);
+        authProvider.setPasswordEncoder(passwordEncoder);
+
+        return new ProviderManager(authProvider);
     }
 
-    // ---------- CORS CONFIG ----------
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(Arrays.asList(
-                "http://127.0.0.1:5500",
-                "http://localhost:5500",
-                "http://localhost:5173",
-                "http://127.0.0.1:5173"
-        ));
-        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(Arrays.asList("*"));
-        config.setExposedHeaders(Arrays.asList("Authorization"));
-        config.setAllowCredentials(true);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-        return source;
-    }
-
-    // ---------- JWT AUTH CONVERTER ----------
+    /** -----------------------------------------
+     * JWT Converter (Remove ROLE_ prefix)
+     * ----------------------------------------- */
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
-        authoritiesConverter.setAuthorityPrefix("");  // Keep roles as-is from JWT
+        JwtGrantedAuthoritiesConverter granted = new JwtGrantedAuthoritiesConverter();
+        granted.setAuthorityPrefix("");
 
-        JwtAuthenticationConverter jwtConverter = new JwtAuthenticationConverter();
-        jwtConverter.setJwtGrantedAuthoritiesConverter(authoritiesConverter);
-        return jwtConverter;
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(granted);
+
+        return converter;
     }
 
-    // ---------- API SECURITY (JWT + STATELESS) ----------
+    /** -----------------------------------------
+     * API Security (JWT, Stateless)
+     * Priority 1
+     * ----------------------------------------- */
     @Bean
     @Order(1)
-    public SecurityFilterChain apiSecurity(HttpSecurity http) throws Exception {
+    public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .securityMatcher("/api/**")
+                .cors(withDefaults())
                 .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .anyRequest().authenticated()
-                )
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                .authorizeHttpRequests(auth -> {
+                    auth.requestMatchers("/api/auth/**").permitAll();
+                    auth.requestMatchers("/api/public/**").permitAll();
+                    auth.anyRequest().authenticated();
+                })
+                .sessionManagement(sess ->
+                        sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .oauth2ResourceServer(oauth2 ->
-                        oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
-                )
-                .formLogin(form -> form.disable())
-                .httpBasic(basic -> basic.disable())
+                        oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
                 .build();
     }
 
-    // ---------- WEB SECURITY (FORM LOGIN + STATIC FILES) ----------
+    /** -----------------------------------------
+     * Web Security (Session-based)
+     * Priority 2
+     * ----------------------------------------- */
     @Bean
     @Order(2)
-    public SecurityFilterChain webSecurity(HttpSecurity http) throws Exception {
+    public SecurityFilterChain webSecurityFilterChain(HttpSecurity http) throws Exception {
         return http
-                .securityMatcher(request -> !request.getRequestURI().startsWith("/api"))
-                .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/login", "/register",
-                                "/css/**", "/js/**", "/images/**"
-                        ).permitAll()
-                        .anyRequest().authenticated()
-                )
+                .securityMatcher("/**")
+                .cors(withDefaults())
+                .csrf(withDefaults())
+                .authorizeHttpRequests(auth -> {
+                    auth.requestMatchers("/", "/login", "/register", "/public/**",
+                                    "/css/**", "/js/**", "/images/**", "/uploads/**")
+                            .permitAll();
+                    auth.anyRequest().authenticated();
+                })
                 .formLogin(form -> form
                         .loginPage("/login")
                         .defaultSuccessUrl("/", true)
@@ -120,6 +119,32 @@ public class SecurityConfig {
                         .logoutSuccessUrl("/login?logout")
                         .permitAll()
                 )
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .build();
+    }
+
+    /** -----------------------------------------
+     * CORS Configuration
+     * ----------------------------------------- */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+
+        config.setAllowedOrigins(List.of(
+                "http://localhost:5173",
+                "http://localhost:5500",
+                "http://127.0.0.1:5173",
+                "http://127.0.0.1:5500"
+        ));
+
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+
+        return source;
     }
 }

@@ -2,16 +2,20 @@ package com.animaland.web.controller.api;
 
 import com.animaland.web.DTO.AuthRequest;
 import com.animaland.web.DTO.AuthResponse;
+import com.animaland.web.DTO.EmployeeDTO;
+import com.animaland.web.DTO.RegisterRequest;
 import com.animaland.web.models.Employee;
 import com.animaland.web.service.EmployeeService;
 import com.animaland.web.service.JwtTokenService;
 import jakarta.validation.Valid;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
+@CrossOrigin
 public class ApiAuthController {
 
     private final AuthenticationManager authenticationManager;
@@ -26,59 +30,66 @@ public class ApiAuthController {
         this.employeeService = employeeService;
     }
 
-    // =========================================
-    // LOGIN (Employee)
-    // =========================================
+    // ---------------- LOGIN ----------------
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody AuthRequest request) {
 
-        // Authenticate Employee using username
-        var authentication = authenticationManager.authenticate(
+        Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        request.username(), // login via username
+                        request.username(),
                         request.password()
                 )
         );
 
-        // Generate JWT token
         String token = jwtTokenService.generateToken(authentication);
+        Long expiresAt = jwtTokenService.extractExpirationTime(token);
 
-        Employee employee = employeeService.findByUsername(request.username());
+        Employee employee = employeeService.findByUsername(authentication.getName());
 
         return new AuthResponse(
                 token,
                 employee.getUsername(),
-                "Login successful"
+                employee.getRole(),
+                expiresAt
         );
     }
 
-    // =========================================
-    // VALIDATE TOKEN
-    // =========================================
-    @GetMapping("/validate")
-    public AuthResponse validate(@RequestHeader("Authorization") String header) {
+    // ---------------- REGISTER ----------------
+    @PostMapping("/register")
+    public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
 
-        if (header == null || !header.startsWith("Bearer ")) {
-            return new AuthResponse(null, null, "Invalid token");
-        }
+        // create EmployeeDTO
+        EmployeeDTO dto = new EmployeeDTO();
+        dto.setUsername(request.username());
+        dto.setPassword(request.password());
+        dto.setRole(request.role());
+        dto.setFirstName("FirstName"); // default
+        dto.setLastName("LastName");   // default
+        dto.setContactNumber("000-0000"); // default
 
-        String token = header.substring(7);
+        employeeService.save(dto);
 
-        if (!jwtTokenService.isTokenValid(token)) {
-            return new AuthResponse(null, null, "Token invalid");
-        }
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        request.username(),
+                        request.password()
+                )
+        );
 
-        String username = jwtTokenService.extractUsername(token);
-        Employee employee = employeeService.findByUsername(username);
-
-        if (employee == null) {
-            return new AuthResponse(null, null, "Employee not found");
-        }
+        String token = jwtTokenService.generateToken(authentication);
+        Long expiresAt = jwtTokenService.extractExpirationTime(token);
 
         return new AuthResponse(
                 token,
-                employee.getUsername(),
-                "Token valid"
+                request.username(),
+                request.role(),
+                expiresAt
         );
+    }
+
+    // ---------------- VALIDATE TOKEN ----------------
+    @GetMapping("/validate")
+    public String validateToken() {
+        return "Token is valid";
     }
 }

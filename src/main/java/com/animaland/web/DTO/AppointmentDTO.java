@@ -1,7 +1,7 @@
 package com.animaland.web.DTO;
 
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -30,7 +30,6 @@ public class AppointmentDTO {
     private List<Long> treatmentIds;
 
     // Getters & Setters
-
     public Long getAppointmentId() { return appointmentId; }
     public void setAppointmentId(Long appointmentId) { this.appointmentId = appointmentId; }
 

@@ -8,7 +8,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-
 import java.util.List;
 
 @CrossOrigin
@@ -28,32 +27,24 @@ public class AppointmentController {
     }
 
     @PostMapping
-    public ResponseEntity<Appointment> createAppointment(@Valid @RequestBody AppointmentDTO appointmentDTO) {
-        Appointment created = appointmentService.save(appointmentDTO);
-        return new ResponseEntity<>(created, HttpStatus.CREATED);
+    public ResponseEntity<Appointment> createAppointment(@Valid @RequestBody AppointmentDTO dto) {
+        return new ResponseEntity<>(appointmentService.save(dto), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<Appointment> updateAppointment(
             @PathVariable Long id,
-            @Valid @RequestBody AppointmentDTO appointmentDTO
+            @Valid @RequestBody AppointmentDTO dto
     ) {
         Appointment existing = appointmentService.findById(id);
-        if (existing == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found");
-        }
-
-        Appointment updated = appointmentService.updateAppointment(existing, appointmentDTO);
-        return ResponseEntity.ok(updated);
+        if (existing == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found");
+        return ResponseEntity.ok(appointmentService.updateAppointment(existing, dto));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteAppointment(@PathVariable Long id) {
         Appointment existing = appointmentService.findById(id);
-        if (existing == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found");
-        }
-
+        if (existing == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found");
         appointmentService.deleteAppointment(id);
         return ResponseEntity.noContent().build();
     }

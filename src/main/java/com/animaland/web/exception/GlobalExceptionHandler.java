@@ -5,8 +5,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -16,6 +16,15 @@ import java.util.Map;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
+
+    // -----------------------------
+    // Handle ResourceNotFoundException (custom)
+    // -----------------------------
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public String handleResourceNotFound(ResourceNotFoundException ex, Model model) {
+        model.addAttribute("message", ex.getMessage());
+        return "error/error";  // Thymeleaf error page
+    }
 
     // -----------------------------
     // Handle ResponseStatusException (404, 403, etc.)
@@ -31,7 +40,7 @@ public class GlobalExceptionHandler {
         }
 
         model.addAttribute("message", ex.getReason());
-        return "error/error";  // Renders error.html
+        return "error/error";
     }
 
     // -----------------------------
@@ -41,13 +50,16 @@ public class GlobalExceptionHandler {
     public Object handleValidationException(MethodArgumentNotValidException ex, WebRequest request, Model model) {
         if (isApiRequest(request)) {
             Map<String, String> errors = new HashMap<>();
-            ex.getBindingResult().getFieldErrors().forEach(error -> {
-                errors.put(error.getField(), error.getDefaultMessage());
-            });
-            return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+            ex.getBindingResult().getFieldErrors().forEach(error ->
+                    errors.put(error.getField(), error.getDefaultMessage())
+            );
+            Map<String, Object> body = new HashMap<>();
+            body.put("timestamp", LocalDateTime.now());
+            body.put("status", HttpStatus.BAD_REQUEST.value());
+            body.put("errors", errors);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
         }
 
-        // Web page: collect errors as HTML string
         StringBuilder errorsHtml = new StringBuilder();
         ex.getBindingResult().getFieldErrors().forEach(error -> {
             errorsHtml.append(error.getField())
@@ -56,7 +68,7 @@ public class GlobalExceptionHandler {
                     .append("<br>");
         });
         model.addAttribute("message", errorsHtml.toString());
-        return "error/error";  // Renders error.html
+        return "error/error";
     }
 
     // -----------------------------
@@ -69,11 +81,11 @@ public class GlobalExceptionHandler {
             body.put("timestamp", LocalDateTime.now());
             body.put("status", HttpStatus.BAD_REQUEST.value());
             body.put("error", ex.getMessage());
-            return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
         }
 
         model.addAttribute("message", ex.getMessage());
-        return "error/error";  // Renders error.html
+        return "error/error";
     }
 
     // -----------------------------
@@ -86,11 +98,11 @@ public class GlobalExceptionHandler {
             body.put("timestamp", LocalDateTime.now());
             body.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
             body.put("error", ex.getMessage());
-            return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
         }
 
         model.addAttribute("message", "Oops! Something went wrong. Please try again later.");
-        return "error/error";  // Renders error.html
+        return "error/error";
     }
 
     // -----------------------------

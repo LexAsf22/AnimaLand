@@ -1,8 +1,8 @@
 package com.animaland.web.controller.api;
 
-import com.animaland.web.DTO.ServiceDTO;
-import com.animaland.web.models.Service;
-import com.animaland.web.service.ServiceService;
+import com.animaland.web.DTO.ServiceEntityDTO;
+import com.animaland.web.models.ServiceEntity;
+import com.animaland.web.service.ServiceEntityService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,29 +14,29 @@ import java.util.List;
 @CrossOrigin
 @RestController
 @RequestMapping("/api/services")
-public class ServiceController {
+public class ServiceEntityController {
 
-    private final ServiceService serviceService;
+    private final ServiceEntityService serviceEntityService;
 
-    public ServiceController(ServiceService serviceService) {
-        this.serviceService = serviceService;
+    public ServiceEntityController(ServiceEntityService serviceEntityService) {
+        this.serviceEntityService = serviceEntityService;
     }
 
     // --------------------------
     // GET ALL SERVICES
     // --------------------------
     @GetMapping
-    public ResponseEntity<List<Service>> getAllServices() {
-        List<Service> services = serviceService.findAll();
-        return ResponseEntity.ok(services);
+    public ResponseEntity<List<ServiceEntity>> getAllServices() {
+        List<ServiceEntity> serviceEntities = serviceEntityService.findAll();
+        return ResponseEntity.ok(serviceEntities);
     }
 
     // --------------------------
     // CREATE SERVICE
     // --------------------------
     @PostMapping
-    public ResponseEntity<Service> createService(@Valid @RequestBody ServiceDTO serviceDTO) {
-        Service created = serviceService.save(serviceDTO);
+    public ResponseEntity<ServiceEntity> createService(@Valid @RequestBody ServiceEntityDTO serviceEntityDTO) {
+        ServiceEntity created = serviceEntityService.save(serviceEntityDTO);
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
@@ -44,16 +44,16 @@ public class ServiceController {
     // UPDATE SERVICE
     // --------------------------
     @PutMapping("/{id}")
-    public ResponseEntity<Service> updateService(
+    public ResponseEntity<ServiceEntity> updateService(
             @PathVariable Long id,
-            @Valid @RequestBody ServiceDTO serviceDTO
+            @Valid @RequestBody ServiceEntityDTO serviceEntityDTO
     ) {
-        Service existing = serviceService.findById(id);
+        ServiceEntity existing = serviceEntityService.findById(id);
         if (existing == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Service not found");
         }
 
-        Service updated = serviceService.updateService(existing, serviceDTO);
+        ServiceEntity updated = serviceEntityService.updateService(existing, serviceEntityDTO);
         return ResponseEntity.ok(updated);
     }
 
@@ -62,12 +62,12 @@ public class ServiceController {
     // --------------------------
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteService(@PathVariable Long id) {
-        Service existing = serviceService.findById(id);
+        ServiceEntity existing = serviceEntityService.findById(id);
         if (existing == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Service not found");
         }
 
-        serviceService.deleteService(id);
+        serviceEntityService.deleteService(id);
         return ResponseEntity.noContent().build();
     }
 }

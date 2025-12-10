@@ -9,5 +9,6 @@ public class AnimaLandApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(AnimaLandApplication.class, args);
 	}
-
 }
+
+

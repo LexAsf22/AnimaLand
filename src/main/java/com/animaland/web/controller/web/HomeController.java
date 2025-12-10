@@ -3,14 +3,13 @@ package com.animaland.web.controller.web;
 import com.animaland.web.DTO.AppointmentDTO;
 import com.animaland.web.exception.ResourceNotFoundException;
 import com.animaland.web.models.Appointment;
+import com.animaland.web.models.ServiceEntity;
 import com.animaland.web.models.Employee;
 import com.animaland.web.models.Pet;
-import com.animaland.web.models.Service;
 import com.animaland.web.repository.AppointmentRepository;
 import com.animaland.web.repository.EmployeeRepository;
 import com.animaland.web.repository.PetRepository;
-import com.animaland.web.repository.ServiceRepository;
-import com.animaland.web.service.AppointmentService;
+import com.animaland.web.repository.ServiceEntityRepository;
 
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
@@ -23,106 +22,105 @@ import java.util.List;
 @Controller
 public class HomeController {
 
-    private final AppointmentService appointmentService;
     private final AppointmentRepository appointmentRepository;
     private final PetRepository petRepository;
-    private final ServiceRepository serviceRepository;
+    private final ServiceEntityRepository serviceEntityRepository;
     private final EmployeeRepository employeeRepository;
 
-    public HomeController(AppointmentService appointmentService,
-                          AppointmentRepository appointmentRepository,
+    public HomeController(AppointmentRepository appointmentRepository,
                           PetRepository petRepository,
-                          ServiceRepository serviceRepository,
+                          ServiceEntityRepository serviceEntityRepository,
                           EmployeeRepository employeeRepository) {
-        this.appointmentService = appointmentService;
+
         this.appointmentRepository = appointmentRepository;
         this.petRepository = petRepository;
-        this.serviceRepository = serviceRepository;
+        this.serviceEntityRepository = serviceEntityRepository;
         this.employeeRepository = employeeRepository;
     }
 
-    //-------------------------------------------
+    // -------------------------------------------
     // HOME: List all appointments
-    //-------------------------------------------
+    // -------------------------------------------
     @GetMapping("/")
     public String index(Model model) {
         List<Appointment> appointments = appointmentRepository.findAll();
         model.addAttribute("appointments", appointments);
-        return "index"; // index.html
+        return "index";
     }
 
-    //-------------------------------------------
+    // -------------------------------------------
     // CREATE FORM
-    //-------------------------------------------
+    // -------------------------------------------
     @GetMapping("/create")
     public String create(Model model) {
         model.addAttribute("appointment", new AppointmentDTO());
 
-        // Dropdown lists
         model.addAttribute("pets", petRepository.findAll());
-        model.addAttribute("services", serviceRepository.findAll());
+        model.addAttribute("services", serviceEntityRepository.findAll());
         model.addAttribute("employees", employeeRepository.findAll());
 
-        return "create"; // create.html
+        return "create";
     }
 
-    //-------------------------------------------
+    // -------------------------------------------
     // SAVE NEW APPOINTMENT
-    //-------------------------------------------
+    // -------------------------------------------
     @PostMapping("/save")
     public String save(@ModelAttribute("appointment") @Valid AppointmentDTO dto,
                        BindingResult result,
                        Model model) {
 
         if (result.hasErrors()) {
-
-            // Reload dropdowns
             model.addAttribute("pets", petRepository.findAll());
-            model.addAttribute("services", serviceRepository.findAll());
+            model.addAttribute("services", serviceEntityRepository.findAll());
             model.addAttribute("employees", employeeRepository.findAll());
-
             return "create";
         }
 
         Appointment appointment = new Appointment();
+
         appointment.setAppointmentDatetime(dto.getAppointmentDatetime());
         appointment.setRemarks(dto.getRemarks());
+        appointment.setStatus("Pending");
 
-        // Set referenced objects
+        // Pet
         Pet pet = petRepository.findById(dto.getPetId())
                 .orElseThrow(() -> new ResourceNotFoundException("Pet", dto.getPetId()));
         appointment.setPet(pet);
 
-        Service service = serviceRepository.findById(dto.getServiceId())
+        // Service
+        ServiceEntity serviceEntity = serviceEntityRepository.findById(dto.getServiceId())
                 .orElseThrow(() -> new ResourceNotFoundException("Service", dto.getServiceId()));
-        appointment.setService(service);
+        appointment.setService(serviceEntity);
 
+        // Staff
         Employee employee = employeeRepository.findById(dto.getStaffId())
                 .orElseThrow(() -> new ResourceNotFoundException("Employee", dto.getStaffId()));
-        appointment.setEmployee(employee);
+        appointment.setStaff(employee);
 
         appointmentRepository.save(appointment);
 
         return "redirect:/";
     }
 
-    //-------------------------------------------
+    // -------------------------------------------
     // SHOW DETAILS
-    //-------------------------------------------
+    // -------------------------------------------
     @GetMapping("/show")
     public String show(@RequestParam Long id, Model model) {
         Appointment appointment = appointmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Appointment", id));
 
         model.addAttribute("appointment", appointment);
-        return "show"; // show.html
+        return "show";
     }
 
-    //-------------------------------------------
+    // -------------------------------------------
     // EDIT FORM
-    //-------------------------------------------
+    // -------------------------------------------
     @GetMapping("/edit")
     public String edit(@RequestParam Long id, Model model) {
+
         Appointment appointment = appointmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Appointment", id));
 
@@ -132,33 +130,28 @@ public class HomeController {
         dto.setRemarks(appointment.getRemarks());
         dto.setPetId(appointment.getPet().getPetId());
         dto.setServiceId(appointment.getService().getServiceId());
-        dto.setStaffId(appointment.getEmployee().getEmployeeId());  // Fix this line
+        dto.setStaffId(appointment.getStaff().getEmployeeId());
 
-        // Add to model
         model.addAttribute("appointment", dto);
-
-        // Dropdown lists
         model.addAttribute("pets", petRepository.findAll());
-        model.addAttribute("services", serviceRepository.findAll());
+        model.addAttribute("services", serviceEntityRepository.findAll());
         model.addAttribute("employees", employeeRepository.findAll());
 
         return "edit";
     }
 
-    //-------------------------------------------
-    // UPDATE APPOINTMENT
-    //-------------------------------------------
+    // -------------------------------------------
+    // UPDATE
+    // -------------------------------------------
     @PostMapping("/update")
     public String update(@ModelAttribute("appointment") @Valid AppointmentDTO dto,
                          BindingResult result,
                          Model model) {
 
         if (result.hasErrors()) {
-
             model.addAttribute("pets", petRepository.findAll());
-            model.addAttribute("services", serviceRepository.findAll());
+            model.addAttribute("services", serviceEntityRepository.findAll());
             model.addAttribute("employees", employeeRepository.findAll());
-
             return "edit";
         }
 
@@ -168,44 +161,26 @@ public class HomeController {
         appointment.setAppointmentDatetime(dto.getAppointmentDatetime());
         appointment.setRemarks(dto.getRemarks());
 
-        appointment.setPet(
-                petRepository.findById(dto.getPetId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Pet", dto.getPetId()))
-        );
+        appointment.setPet(petRepository.findById(dto.getPetId())
+                .orElseThrow(() -> new ResourceNotFoundException("Pet", dto.getPetId())));
 
-        appointment.setService(
-                serviceRepository.findById(dto.getServiceId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Service", dto.getServiceId()))
-        );
+        appointment.setService(serviceEntityRepository.findById(dto.getServiceId())
+                .orElseThrow(() -> new ResourceNotFoundException("Service", dto.getServiceId())));
 
-        appointment.setEmployee(
-                employeeRepository.findById(dto.getStaffId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Employee", dto.getStaffId()))
-        );
+        appointment.setStaff(employeeRepository.findById(dto.getStaffId())
+                .orElseThrow(() -> new ResourceNotFoundException("Employee", dto.getStaffId())));
 
         appointmentRepository.save(appointment);
 
         return "redirect:/";
     }
 
-    //-------------------------------------------
+    // -------------------------------------------
     // DELETE
-    //-------------------------------------------
+    // -------------------------------------------
     @GetMapping("/delete")
     public String delete(@RequestParam Long id) {
         appointmentRepository.deleteById(id);
         return "redirect:/";
-    }
-
-    //-------------------------------------------
-    // VIEW (similar to SHOW)
-    //-------------------------------------------
-    @GetMapping("/view")
-    public String view(@RequestParam Long id, Model model) {
-        Appointment appointment = appointmentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Appointment", id));
-
-        model.addAttribute("appointment", appointment);
-        return "view";
     }
 }

@@ -2,11 +2,16 @@ package com.animaland.web.repository;
 
 import com.animaland.web.models.Employee;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
+@Repository
 public interface EmployeeRepository extends JpaRepository<Employee, Long> {
-
-    // Custom query to find employee by username (authentication)
     Optional<Employee> findByUsername(String username);
+    boolean existsByUsername(String username);
+
+    // Count total employees (already provided by JpaRepository.count())
+    // Count active employees (role != "Inactive")
+    long countByRoleNot(String role);
 }

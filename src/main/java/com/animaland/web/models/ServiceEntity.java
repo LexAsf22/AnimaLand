@@ -6,7 +6,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "services")
-public class Service {
+public class ServiceEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,7 +25,8 @@ public class Service {
     @Column(nullable = false)
     private Integer duration;
 
-    @OneToMany(mappedBy = "service", fetch = FetchType.LAZY)
+    // FIXED: mappedBy must match Appointment.serviceEntity
+    @OneToMany(mappedBy = "serviceEntity", fetch = FetchType.LAZY)
     @JsonManagedReference("service-appointments")
     private List<Appointment> appointments;
 

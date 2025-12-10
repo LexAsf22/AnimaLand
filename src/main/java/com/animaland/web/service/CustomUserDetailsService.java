@@ -18,15 +18,14 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        // Find employee by username (used for login)
+
         Employee employee = employeeRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Employee not found"));
 
-        // Return employee details as UserDetails
         return org.springframework.security.core.userdetails.User
-                .withUsername(employee.getUsername())  // Use username for authentication
-                .password(employee.getPassword())      // Use password for authentication (hashed)
-                .roles(employee.getRole())              // Use role ("staff" or "veterinarian")
+                .withUsername(employee.getUsername())
+                .password(employee.getPassword())
+                .roles(employee.getRole()) // maps Employee role to Spring Security authorities
                 .build();
     }
 }

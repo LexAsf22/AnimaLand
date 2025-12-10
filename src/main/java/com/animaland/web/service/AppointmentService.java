@@ -1,11 +1,17 @@
 package com.animaland.web.service;
 
 import com.animaland.web.DTO.AppointmentDTO;
-import com.animaland.web.models.*;
-import com.animaland.web.repository.*;
-import org.springframework.http.HttpStatus;
+import com.animaland.web.models.Appointment;
+import com.animaland.web.models.ServiceEntity;
+import com.animaland.web.models.Pet;
+import com.animaland.web.models.Employee;
+import com.animaland.web.repository.AppointmentRepository;
+import com.animaland.web.repository.PetRepository;
+import com.animaland.web.repository.ServiceEntityRepository;
+import com.animaland.web.repository.EmployeeRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import java.util.List;
 
@@ -14,22 +20,17 @@ public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
     private final PetRepository petRepository;
-    private final com.animaland.web.repository.ServiceRepository serviceRepository;
+    private final ServiceEntityRepository serviceEntityRepository;
     private final EmployeeRepository employeeRepository;
-    private final TreatmentRecordRepository treatmentRecordRepository;
 
-    public AppointmentService(
-            AppointmentRepository appointmentRepository,
-            PetRepository petRepository,
-            com.animaland.web.repository.ServiceRepository serviceRepository,
-            EmployeeRepository employeeRepository,
-            TreatmentRecordRepository treatmentRecordRepository
-    ) {
+    public AppointmentService(AppointmentRepository appointmentRepository,
+                              PetRepository petRepository,
+                              ServiceEntityRepository serviceEntityRepository,
+                              EmployeeRepository employeeRepository) {
         this.appointmentRepository = appointmentRepository;
         this.petRepository = petRepository;
-        this.serviceRepository = serviceRepository;
+        this.serviceEntityRepository = serviceEntityRepository;
         this.employeeRepository = employeeRepository;
-        this.treatmentRecordRepository = treatmentRecordRepository;
     }
 
     public List<Appointment> findAll() {
@@ -46,9 +47,9 @@ public class AppointmentService {
         return appointmentRepository.save(appointment);
     }
 
-    public Appointment updateAppointment(Appointment appointment, AppointmentDTO dto) {
-        applyDtoToAppointment(appointment, dto);
-        return appointmentRepository.save(appointment);
+    public Appointment updateAppointment(Appointment existing, AppointmentDTO dto) {
+        applyDtoToAppointment(existing, dto);
+        return appointmentRepository.save(existing);
     }
 
     public void deleteAppointment(Long id) {
@@ -56,30 +57,21 @@ public class AppointmentService {
     }
 
     private void applyDtoToAppointment(Appointment appointment, AppointmentDTO dto) {
-
-        appointment.setAppointmentDatetime(dto.getAppointmentDatetime());
-        appointment.setRemarks(dto.getRemarks());
-
-        // Pet
+        // Fetch related entities
         Pet pet = petRepository.findById(dto.getPetId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pet not found"));
-        appointment.setPet(pet);
 
-        // Service
-        com.animaland.web.models.Service service =
-                serviceRepository.findById(dto.getServiceId())
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service not found"));
-        appointment.setService(service);
+        ServiceEntity serviceEntity = serviceEntityRepository.findById(dto.getServiceId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service not found"));
 
-        // Employee
         Employee staff = employeeRepository.findById(dto.getStaffId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Staff not found"));
-        appointment.setEmployee(staff);
 
-        // Treatments (optional)
-        if (dto.getTreatmentIds() != null && !dto.getTreatmentIds().isEmpty()) {
-            List<TreatmentRecord> treatments = treatmentRecordRepository.findAllById(dto.getTreatmentIds());
-            appointment.setTreatments(treatments);
-        }
+        appointment.setPet(pet);
+        appointment.setService(serviceEntity);
+        appointment.setStaff(staff);
+        appointment.setAppointmentDatetime(dto.getAppointmentDatetime());
+        appointment.setStatus(dto.getStatus());
+        appointment.setRemarks(dto.getRemarks());
     }
 }

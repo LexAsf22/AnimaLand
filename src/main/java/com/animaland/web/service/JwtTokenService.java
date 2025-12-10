@@ -1,92 +1,79 @@
 package com.animaland.web.service;
 
-import com.nimbusds.jose.jwk.source.ImmutableSecret;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.stereotype.Service;
 
-import javax.crypto.spec.SecretKeySpec;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.stream.Collectors;
 
 @Service
 public class JwtTokenService {
 
-    private final JwtEncoder jwtEncoder;
-    private final JwtDecoder jwtDecoder;
+    private final JwtEncoder encoder;
+    private final JwtDecoder decoder;
 
-    public JwtTokenService(@Value("${jwt.secret-key}") String secretKey) {
-
-        // Convert secret key to bytes
-        SecretKeySpec secretKeySpec =
-                new SecretKeySpec(secretKey.getBytes(), "HmacSHA256");
-
-        // ✅ ENCODER (sign tokens)
-        this.jwtEncoder = new NimbusJwtEncoder(new ImmutableSecret<>(secretKeySpec));
-
-        // ✅ DECODER (verify tokens)
-        this.jwtDecoder = NimbusJwtDecoder
-                .withSecretKey(secretKeySpec)
-                .macAlgorithm(MacAlgorithm.HS256)
-                .build();
+    public JwtTokenService(JwtEncoder encoder, JwtDecoder decoder) {
+        this.encoder = encoder;
+        this.decoder = decoder;
     }
 
-    // -----------------------------------------------------
-    // CREATE JWT TOKEN
-    // -----------------------------------------------------
+    // -----------------------------
+    // Generate JWT token
+    // -----------------------------
     public String generateToken(Authentication authentication) {
-
         Instant now = Instant.now();
-        long expirationSeconds = 60 * 60 * 24; // 24 hours
 
-        String username = authentication.getName(); // employee's username (used for login)
-
-        // ROLE (fetch from authorities)
-        String role = authentication.getAuthorities().stream()
-                .findFirst()
-                .map(a -> a.getAuthority())
-                .orElse("USER");  // default to "USER" if no role is present
+        // Concatenate roles/authorities into a single string
+        String scope = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.joining(" "));
 
         JwtClaimsSet claims = JwtClaimsSet.builder()
-                .subject(username)
+                .issuer("self")
                 .issuedAt(now)
-                .expiresAt(now.plusSeconds(expirationSeconds))
-                .claim("role", role)  // storing role as a claim
-                .issuer("animaland-api")
+                .expiresAt(now.plus(1, ChronoUnit.DAYS)) // Token valid for 1 day
+                .subject(authentication.getName())
+                .claim("scope", scope)
                 .build();
 
-        var header = JwsHeader.with(MacAlgorithm.HS256).build();
+        var encoderParameters = JwtEncoderParameters.from(
+                JwsHeader.with(MacAlgorithm.HS256).build(),
+                claims
+        );
 
-        return jwtEncoder.encode(
-                JwtEncoderParameters.from(header, claims)
-        ).getTokenValue();
+        return this.encoder.encode(encoderParameters).getTokenValue();
     }
 
-    // -----------------------------------------------------
-    // CHECK EXPIRATION TIME
-    // -----------------------------------------------------
+    // -----------------------------
+    // Extract expiration time in milliseconds
+    // -----------------------------
     public Long extractExpirationTime(String token) {
-        Jwt jwt = jwtDecoder.decode(token);
-        return jwt.getExpiresAt().getEpochSecond();
+        Jwt jwt = decoder.decode(token);
+        Instant exp = jwt.getExpiresAt();
+        return exp != null ? exp.toEpochMilli() : null;
     }
 
-    // -----------------------------------------------------
-    // GET USERNAME (EMPLOYEE'S USERNAME)
-    // -----------------------------------------------------
+    // -----------------------------
+    // Extract username from token
+    // -----------------------------
     public String extractUsername(String token) {
-        Jwt jwt = jwtDecoder.decode(token);
-        return jwt.getSubject();  // returns the employee's username (not email)
+        Jwt jwt = decoder.decode(token);
+        return jwt.getSubject();
     }
 
-    // -----------------------------------------------------
-    // VALIDATE TOKEN
-    // -----------------------------------------------------
+    // -----------------------------
+    // Validate token
+    // -----------------------------
     public boolean isTokenValid(String token) {
         try {
-            jwtDecoder.decode(token);  // throws error if invalid
-            return true;
-        } catch (Exception ex) {
+            Jwt jwt = decoder.decode(token);
+            Instant now = Instant.now();
+            return jwt.getExpiresAt() != null && jwt.getExpiresAt().isAfter(now);
+        } catch (JwtException e) {
             return false;
         }
     }

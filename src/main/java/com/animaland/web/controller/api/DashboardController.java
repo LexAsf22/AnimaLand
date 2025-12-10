@@ -1,0 +1,56 @@
+package com.animaland.web.controller.api;
+
+import com.animaland.web.DTO.dashboard.DashboardStatsResponse;
+import com.animaland.web.DTO.dashboard.RecentAppointmentResponse;
+import com.animaland.web.DTO.dashboard.RecentPetResponse;
+import com.animaland.web.repository.AppointmentRepository;
+import com.animaland.web.repository.EmployeeRepository;
+import com.animaland.web.repository.OwnerRepository;
+import com.animaland.web.repository.PetRepository;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/dashboard")
+@CrossOrigin(origins = "http://localhost:5173")
+public class DashboardController {
+
+    private final EmployeeRepository employeeRepository;
+    private final AppointmentRepository appointmentRepository;
+    private final PetRepository petRepository;
+    private final OwnerRepository ownerRepository;
+
+    public DashboardController(EmployeeRepository employeeRepository,
+                               AppointmentRepository appointmentRepository,
+                               PetRepository petRepository,
+                               OwnerRepository ownerRepository) {
+        this.employeeRepository = employeeRepository;
+        this.appointmentRepository = appointmentRepository;
+        this.petRepository = petRepository;
+        this.ownerRepository = ownerRepository;
+    }
+
+    // ----------------- Dashboard Stats -----------------
+    @GetMapping("/stats")
+    public DashboardStatsResponse getStats() {
+        return new DashboardStatsResponse(
+                ownerRepository.count(),
+                employeeRepository.count(),
+                appointmentRepository.count(),
+                petRepository.count()
+        );
+    }
+
+    // ----------------- Recent Appointments -----------------
+    @GetMapping("/recent")
+    public List<RecentAppointmentResponse> getRecentAppointments() {
+        return appointmentRepository.findRecentAppointments().stream().limit(5).toList();
+    }
+
+    // ----------------- Recent Pets -----------------
+    @GetMapping("/recent-pets")
+    public List<RecentPetResponse> getRecentPets() {
+        return petRepository.findRecentPets().stream().limit(5).toList();
+    }
+}
