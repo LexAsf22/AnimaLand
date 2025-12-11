@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import api from "../api"; // Axios instance with baseURL
+import api from "../api/api"; // Axios instance with baseURL
 import { useAuth } from "../context/AuthContext";
 
 export default function Dashboard() {

@@ -1,186 +1,334 @@
-import { useState, useEffect } from "react";
-import api from "../api"; 
+import React, { useEffect, useState } from "react";
+import api from "../api/api"; // axios instance with baseURL: http://localhost:8080/api
 import { useAuth } from "../context/AuthContext";
 
-export default function Appointment() {
+export default function AppointmentPage() {
   const { token } = useAuth();
   const [appointments, setAppointments] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [modal, setModal] = useState({ type: null, appointment: null });
-  const [loading, setLoading] = useState(true);
+  const [pets, setPets] = useState([]);
+  const [services, setServices] = useState([]);
+  const [staff, setStaff] = useState([]);
 
-  // Fetch appointments from backend
+  const [showForm, setShowForm] = useState(false);
+  const [selectedPetId, setSelectedPetId] = useState("");
+  const [selectedServiceId, setSelectedServiceId] = useState("");
+  const [selectedStaffId, setSelectedStaffId] = useState("");
+  const [appointmentDatetime, setAppointmentDatetime] = useState("");
+  const [remarks, setRemarks] = useState("");
+  const [status, setStatus] = useState("Scheduled");
+
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  // Helper: headers for requests (api has interceptor but we include for clarity)
+  const authHeaders = { headers: { Authorization: token ? `Bearer ${token}` : "" } };
+
+  // Fetch appointments + dropdown data on mount
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      // if not logged in, don't try
+      setInitialLoading(false);
+      return;
+    }
 
-    setLoading(true);
-    api.get("/appointments", { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => setAppointments(res.data))
-      .catch(err => console.error(err))
-      .finally(() => setLoading(false));
+    const fetchAll = async () => {
+      try {
+        setInitialLoading(true);
+        const [apptsRes, petsRes, servicesRes, staffRes] = await Promise.all([
+          api.get("/appointments", authHeaders),
+          api.get("/pets", authHeaders),
+          api.get("/services", authHeaders),
+          api.get("/employee", authHeaders),
+        ]);
+
+        setAppointments(Array.isArray(apptsRes.data) ? apptsRes.data : []);
+        setPets(Array.isArray(petsRes.data) ? petsRes.data : []);
+        setServices(Array.isArray(servicesRes.data) ? servicesRes.data : []);
+        setStaff(Array.isArray(staffRes.data) ? staffRes.data : []);
+      } catch (err) {
+        console.error("Failed to load appointment page data:", err);
+        setAppointments([]);
+        setPets([]);
+        setServices([]);
+        setStaff([]);
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+
+    fetchAll();
+    // no interval here — appointments may be refreshed after add
   }, [token]);
 
-  // Add appointment
-  const addAppointment = async (newAppt) => {
+  // When pet selection changes, automatically show owner if exists (no backend call required)
+  const selectedPet = pets.find((p) => String(p.petId) === String(selectedPetId));
+  const petOwner = selectedPet?.owner || null;
+
+  // Convert datetime-local input (YYYY-MM-DDTHH:mm) to 'YYYY-MM-DDTHH:mm:ss' for backend LocalDateTime
+  function normalizeDatetimeForBackend(inputValue) {
+    if (!inputValue) return null;
+    // inputValue usually "2025-12-12T18:00" (no seconds) — append ":00" if missing
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(inputValue)) {
+      return `${inputValue}:00`;
+    }
+    // if seconds already present, return as-is
+    return inputValue;
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Basic validation
+    if (!selectedPetId) return alert("Please select a pet.");
+    if (!selectedServiceId) return alert("Please select a service.");
+    if (!selectedStaffId) return alert("Please select a staff.");
+    if (!appointmentDatetime) return alert("Please choose a date & time.");
+
+    // Extra validation: ensure pet has an owner
+    if (!petOwner) {
+      return alert(
+        "Selected pet does not have an owner assigned. Please pick a pet that has an owner."
+      );
+    }
+
+    // Format datetime properly for Java LocalDateTime expectation (no trailing Z)
+    const normalized = normalizeDatetimeForBackend(appointmentDatetime);
+
+    const payload = {
+      petId: Number(selectedPetId),
+      serviceId: Number(selectedServiceId),
+      staffId: Number(selectedStaffId),
+      appointmentDatetime: normalized,
+      remarks: remarks || "",
+      status: status || "Scheduled",
+    };
+
     try {
-      const res = await api.post("/appointments", newAppt, { headers: { Authorization: `Bearer ${token}` } });
-      setAppointments([...appointments, res.data]);
-      setModal({ type: null, appointment: null });
+      setLoading(true);
+      const res = await api.post("/appointments", payload, authHeaders);
+      // success
+      alert("Appointment added successfully!");
+      setShowForm(false);
+
+      // reset form
+      setSelectedPetId("");
+      setSelectedServiceId("");
+      setSelectedStaffId("");
+      setAppointmentDatetime("");
+      setRemarks("");
+      setStatus("Scheduled");
+
+      // refresh appointments (GET)
+      const refreshed = await api.get("/appointments", authHeaders);
+      setAppointments(Array.isArray(refreshed.data) ? refreshed.data : []);
     } catch (err) {
-      console.error(err);
+      console.error("Failed to add appointment:", err);
+      // show a helpful message, prefer server message if available
+      const serverMsg = err.response?.data?.message || err.response?.data?.error;
+      alert("Failed to add appointment: " + (serverMsg || err.message));
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Edit appointment
-  const editAppointment = async (updatedAppt) => {
-    try {
-      const res = await api.put(`/appointments/${updatedAppt.id}`, updatedAppt, { headers: { Authorization: `Bearer ${token}` } });
-      setAppointments(appointments.map(a => a.id === updatedAppt.id ? res.data : a));
-      setModal({ type: null, appointment: null });
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  // Delete appointment
-  const deleteAppointment = async (id) => {
-    if (!confirm("Are you sure you want to delete this appointment?")) return;
-    try {
-      await api.delete(`/appointments/${id}`, { headers: { Authorization: `Bearer ${token}` } });
-      setAppointments(appointments.filter(a => a.id !== id));
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  // Filtered appointments
-  const filteredAppointments = appointments.filter(a =>
-    a.patient.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    a.species.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    a.owner.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  if (loading) return <div className="p-8">Loading appointments...</div>;
+  if (initialLoading) {
+    return <div className="p-8 text-center text-gray-500">Loading appointments...</div>;
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100 p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header + Add Button */}
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-4xl font-serif font-bold text-gray-800">Appointments</h1>
+    <div className="p-8 max-w-6xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6 text-center text-pink-600">Appointments</h1>
+
+      <div className="flex justify-between mb-4 items-center gap-4">
+        <div className="flex-1">
           <button
-            className="bg-gradient-to-r from-pink-400 to-rose-400 text-white py-3 px-6 rounded-lg hover:from-pink-500 hover:to-rose-500 transition-all duration-300 font-medium shadow-md hover:shadow-lg transform hover:-translate-y-1 flex items-center gap-2"
-            onClick={() => setModal({ type: 'add', appointment: null })}
+            onClick={() => setShowForm((s) => !s)}
+            className="bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-md shadow"
           >
-            Add Appointment
+            {showForm ? "Close Form" : "Add Appointment"}
           </button>
         </div>
-
-        {/* Search */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-pink-100 mb-6">
-          <input
-            type="text"
-            placeholder="Search by patient, species, or owner..."
-            className="w-full p-2 border rounded"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-
-        {/* Appointments Table */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-pink-100 overflow-x-auto">
-          <table className="min-w-full">
-            <thead className="bg-gradient-to-r from-pink-100 to-rose-100">
-              <tr>
-                <th className="p-4 text-left">Patient</th>
-                <th className="p-4 text-left">Species</th>
-                <th className="p-4 text-left">Owner</th>
-                <th className="p-4 text-left">Date</th>
-                <th className="p-4 text-left">Time</th>
-                <th className="p-4 text-left">Status</th>
-                <th className="p-4 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-pink-100">
-              {filteredAppointments.map(a => (
-                <tr key={a.id} className="hover:bg-pink-50/50 transition-colors">
-                  <td className="p-4">{a.patient}</td>
-                  <td className="p-4">{a.species}</td>
-                  <td className="p-4">{a.owner}</td>
-                  <td className="p-4">{a.date}</td>
-                  <td className="p-4">{a.time}</td>
-                  <td className="p-4">{a.status}</td>
-                  <td className="p-4 flex gap-2">
-                    <button onClick={() => setModal({ type: 'view', appointment: a })} className="text-blue-500">View</button>
-                    <button onClick={() => setModal({ type: 'edit', appointment: a })} className="text-green-500">Edit</button>
-                    <button onClick={() => deleteAppointment(a.id)} className="text-red-500">Delete</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Modal */}
-        {modal.type && (
-          <AppointmentModal
-            type={modal.type}
-            appointment={modal.appointment}
-            addAppointment={addAppointment}
-            editAppointment={editAppointment}
-            close={() => setModal({ type: null, appointment: null })}
-          />
-        )}
       </div>
-    </div>
-  );
-}
 
-// Appointment Modal Component
-function AppointmentModal({ type, appointment, addAppointment, editAppointment, close }) {
-  const [formData, setFormData] = useState({
-    patient: appointment?.patient || "",
-    species: appointment?.species || "",
-    owner: appointment?.owner || "",
-    date: appointment?.date || "",
-    time: appointment?.time || "",
-    status: appointment?.status || "Scheduled",
-  });
+      {showForm && (
+        <div className="bg-white shadow-md border border-pink-200 rounded-lg p-6 mb-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Pet */}
+            <div>
+              <label className="font-semibold text-gray-700">Pet</label>
+              <select
+                className="w-full mt-1 p-2 border rounded-md"
+                value={selectedPetId}
+                onChange={(e) => setSelectedPetId(e.target.value)}
+                required
+              >
+                <option value="">-- Select Pet --</option>
+                {pets.map((p) => (
+                  <option key={p.petId} value={p.petId}>
+                    {p.name} ({p.species}) — {p.owner ? `${p.owner.firstName} ${p.owner.lastName}` : "No owner"}
+                  </option>
+                ))}
+              </select>
+              {selectedPetId && petOwner && (
+                <p className="mt-2 text-sm text-gray-600">
+                  Owner: {petOwner.firstName} {petOwner.lastName} — {petOwner.email || petOwner.phoneNumber || ""}
+                </p>
+              )}
+              {selectedPetId && !petOwner && (
+                <p className="mt-2 text-sm text-red-600">Selected pet has no owner — cannot schedule.</p>
+              )}
+            </div>
 
-  const handleChange = (e) => {
-    setFormData({...formData, [e.target.name]: e.target.value});
-  };
+            {/* Service */}
+            <div>
+              <label className="font-semibold text-gray-700">Service</label>
+              <select
+                className="w-full mt-1 p-2 border rounded-md"
+                value={selectedServiceId}
+                onChange={(e) => setSelectedServiceId(e.target.value)}
+                required
+              >
+                <option value="">-- Select Service --</option>
+                {services.map((s) => (
+                  <option key={s.serviceId} value={s.serviceId}>
+                    {s.serviceName}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (type === "add") addAppointment(formData);
-    if (type === "edit") editAppointment({ ...appointment, ...formData });
-  };
+            {/* Staff */}
+            <div>
+              <label className="font-semibold text-gray-700">Staff</label>
+              <select
+                className="w-full mt-1 p-2 border rounded-md"
+                value={selectedStaffId}
+                onChange={(e) => setSelectedStaffId(e.target.value)}
+                required
+              >
+                <option value="">-- Select Staff --</option>
+                {staff.map((st) => (
+                  <option key={st.employeeId} value={st.employeeId}>
+                    {st.firstName} {st.lastName} ({st.role || st.position || "Staff"})
+                  </option>
+                ))}
+              </select>
+            </div>
 
-  return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-      <div className="bg-white p-6 rounded-xl shadow-lg w-96">
-        <h2 className="text-xl font-bold mb-4">{type === "add" ? "Add Appointment" : type === "edit" ? "Edit Appointment" : "View Appointment"}</h2>
-        <form onSubmit={handleSubmit} className="space-y-3">
-          {["patient", "species", "owner", "date", "time", "status"].map((field) => (
-            <input
-              key={field}
-              type={field === "date" ? "date" : field === "time" ? "time" : "text"}
-              name={field}
-              value={formData[field]}
-              onChange={handleChange}
-              className={`w-full p-2 border rounded ${type === "view" ? "bg-gray-100" : ""}`}
-              placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
-              disabled={type === "view"}
-            />
-          ))}
-          {type !== "view" && (
-            <button type="submit" className="w-full bg-gradient-to-r from-pink-400 to-rose-400 text-white py-2 rounded-lg hover:from-pink-500 hover:to-rose-500 transition-all">
-              {type === "add" ? "Add" : "Save Changes"}
-            </button>
-          )}
-          <button type="button" onClick={close} className="w-full bg-gray-300 text-gray-800 py-2 rounded-lg mt-2 hover:bg-gray-400 transition-all">Close</button>
-        </form>
+            {/* Date & Time */}
+            <div>
+              <label className="font-semibold text-gray-700">Date & Time</label>
+              <input
+                type="datetime-local"
+                className="w-full mt-1 p-2 border rounded-md"
+                value={appointmentDatetime}
+                onChange={(e) => setAppointmentDatetime(e.target.value)}
+                required
+              />
+              <p className="text-sm text-gray-500 mt-1">
+                Note: time will be saved as local date/time (stored as LocalDateTime on backend).
+              </p>
+            </div>
+
+            {/* Remarks */}
+            <div>
+              <label className="font-semibold text-gray-700">Remarks</label>
+              <textarea
+                className="w-full mt-1 p-2 border rounded-md"
+                value={remarks}
+                onChange={(e) => setRemarks(e.target.value)}
+                placeholder="Optional notes for the appointment (required by backend — you may enter '-' if none)."
+              />
+              <p className="text-sm text-gray-500 mt-1">Backend requires a non-empty remarks field — enter '-' if none.</p>
+            </div>
+
+            {/* Status */}
+            <div>
+              <label className="font-semibold text-gray-700">Status</label>
+              <select
+                className="w-full mt-1 p-2 border rounded-md"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                required
+              >
+                <option value="Scheduled">Scheduled</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowForm(false)}
+                className="px-4 py-2 bg-gray-200 rounded"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-4 py-2 bg-pink-500 text-white rounded"
+              >
+                {loading ? "Adding..." : "Add Appointment"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Appointments table */}
+      <div className="overflow-x-auto bg-white shadow-md border border-pink-200 rounded-lg">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-pink-100">
+            <tr>
+              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Pet</th>
+              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Service</th>
+              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Staff</th>
+              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Date & Time</th>
+              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Status</th>
+            </tr>
+          </thead>
+
+          <tbody className="bg-white divide-y divide-gray-200">
+            {appointments.length === 0 && (
+              <tr>
+                <td colSpan="5" className="text-center py-6 text-gray-500">
+                  No appointments scheduled.
+                </td>
+              </tr>
+            )}
+
+            {appointments.map((appt) => {
+              // appt.appointmentDatetime might be "YYYY-MM-DDTHH:mm:ss"
+              // new Date(...) can interpret as local vs UTC inconsistently - show raw if invalid
+              let displayDatetime = appt.appointmentDatetime;
+              try {
+                const parsed = new Date(appt.appointmentDatetime);
+                if (!isNaN(parsed)) displayDatetime = parsed.toLocaleString();
+              } catch (e) {
+                // fallback: keep original string
+              }
+
+              return (
+                <tr key={appt.appointmentId || appt.id}>
+                  <td className="px-6 py-4">
+                    {appt.pet?.name ?? "—"}
+                    <div className="text-xs text-gray-400">
+                      {appt.pet?.species ? `${appt.pet.species}` : ""}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">{appt.service?.serviceName ?? "—"}</td>
+                  <td className="px-6 py-4">
+                    {appt.staff ? `${appt.staff.firstName} ${appt.staff.lastName}` : "—"}
+                  </td>
+                  <td className="px-6 py-4">{displayDatetime}</td>
+                  <td className="px-6 py-4">{appt.status}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );

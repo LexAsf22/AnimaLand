@@ -1,198 +1,167 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+import { useEffect, useState } from "react";
+import api from "../api/api"; // axios instance
+import { useAuth } from "../context/AuthContext";
 
 export default function TreatmentRecords() {
-  const [pets, setPets] = useState([]);
+  const { token } = useAuth();
+  const [appointments, setAppointments] = useState([]);
   const [treatments, setTreatments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState({ type: null, treatment: null });
+  const [modal, setModal] = useState({ type: null, treatment: null, appointmentId: null });
 
-  // Fetch pets and treatments
+  // Fetch appointments and treatments
   useEffect(() => {
+    if (!token) return;
+
     const fetchData = async () => {
       try {
-        const petsRes = await axios.get("http://localhost:8080/api/pets");
-        const treatmentsRes = await axios.get("http://localhost:8080/api/treatments");
-        setPets(petsRes.data);
-        setTreatments(treatmentsRes.data);
-        setLoading(false);
+        setLoading(true);
+        const [apptRes, trRes] = await Promise.all([
+          api.get("/appointments"),
+          api.get("/treatments")
+        ]);
+
+        setAppointments(Array.isArray(apptRes.data) ? apptRes.data : []);
+        setTreatments(Array.isArray(trRes.data) ? trRes.data : []);
       } catch (err) {
-        console.error(err);
+        console.error("Error fetching data:", err);
+      } finally {
+        setLoading(false);
       }
     };
+
     fetchData();
-  }, []);
+  }, [token]);
 
   // Add treatment
   const addTreatment = async (newTreatment) => {
     try {
-      const res = await axios.post("http://localhost:8080/api/treatments", newTreatment);
-      setTreatments([...treatments, res.data]);
-      setModal({ type: null, treatment: null });
+      const res = await api.post("/treatments", newTreatment);
+      setTreatments(prev => [...prev, res.data]);
+      setModal({ type: null, treatment: null, appointmentId: null });
     } catch (err) {
       console.error(err);
+      alert("Failed to add treatment.");
     }
   };
 
   // Edit treatment
   const editTreatment = async (updatedTreatment) => {
     try {
-      const res = await axios.put(`http://localhost:8080/api/treatments/${updatedTreatment.id}`, updatedTreatment);
-      setTreatments(treatments.map(t => t.id === updatedTreatment.id ? res.data : t));
-      setModal({ type: null, treatment: null });
+      const res = await api.put(`/treatments/${updatedTreatment.treatmentId}`, updatedTreatment);
+      setTreatments(prev => prev.map(t => t.treatmentId === updatedTreatment.treatmentId ? res.data : t));
+      setModal({ type: null, treatment: null, appointmentId: null });
     } catch (err) {
       console.error(err);
+      alert("Failed to update treatment.");
     }
   };
 
   // Delete treatment
   const deleteTreatment = async (id) => {
-    if (window.confirm("Are you sure you want to delete this treatment?")) {
-      try {
-        await axios.delete(`http://localhost:8080/api/treatments/${id}`);
-        setTreatments(treatments.filter(t => t.id !== id));
-      } catch (err) {
-        console.error(err);
-      }
+    if (!confirm("Are you sure you want to delete this treatment?")) return;
+    try {
+      await api.delete(`/treatments/${id}`);
+      setTreatments(prev => prev.filter(t => t.treatmentId !== id));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete treatment.");
     }
   };
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) return <div className="p-8 text-center text-gray-500">Loading treatment records...</div>;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100 p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-serif text-gray-800 mb-3">Treatment Records Dashboard</h1>
-          <p className="text-gray-600">Monitor treatments, services, prescribed medicines, and service dates for each pet.</p>
-        </div>
+        <h1 className="text-4xl font-serif text-gray-800 mb-3">Treatment Records Dashboard</h1>
 
-        {/* Pet Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {pets.map((pet) => {
-            const petRecords = treatments.filter(t => t.petId === pet.id);
+          {appointments.map(appt => {
+            const trRecords = treatments.filter(t => t.appointment?.appointmentId === appt.appointmentId);
             return (
-              <div key={pet.id} className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-pink-100">
-                <h2 className="text-2xl font-semibold text-gray-800 mb-4">{pet.name} ({pet.species})</h2>
-                <p className="text-gray-600 mb-2">Breed: {pet.breed}</p>
-                <p className="text-gray-600 mb-2">Owner: {pet.owner}</p>
-                <p className="text-gray-600 mb-4">Last Visit: {pet.lastVisit}</p>
-                
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-lg font-medium text-gray-700">Treatment Records:</h3>
-                  <button
-                    className="text-white bg-pink-400 px-2 py-1 rounded hover:bg-pink-500"
-                    onClick={() => setModal({ type: 'add', petId: pet.id })}
-                  >
-                    Add
-                  </button>
+              <div key={appt.appointmentId} className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-pink-100">
+                <h2 className="text-2xl font-semibold">{appt.pet?.name} ({appt.pet?.species})</h2>
+                <p>Owner: {appt.pet?.owner?.firstName} {appt.pet?.owner?.lastName}</p>
+                <div className="flex justify-between items-center mt-2 mb-2">
+                  <h3>Treatment Records:</h3>
+                  <button onClick={() => setModal({ type: 'add', appointmentId: appt.appointmentId })} className="bg-pink-500 text-white px-2 py-1 rounded">Add</button>
                 </div>
-
-                {petRecords.length > 0 ? (
-                  <ul className="space-y-2">
-                    {petRecords.map((t) => (
-                      <li key={t.id} className="bg-pink-50 rounded-xl p-3 border border-pink-100">
-                        <p><span className="font-semibold">Service:</span> {t.serviceGiven}</p>
-                        <p><span className="font-semibold">Findings:</span> {t.findings}</p>
-                        <p><span className="font-semibold">Medicine:</span> {t.medicinePrescribed}</p>
-                        <p><span className="font-semibold">Date:</span> {t.serviceDate}</p>
-                        <div className="flex gap-2 mt-2">
-                          <button
-                            className="text-green-500"
-                            onClick={() => setModal({ type: 'edit', treatment: t })}
-                          >Edit</button>
-                          <button
-                            className="text-red-500"
-                            onClick={() => deleteTreatment(t.id)}
-                          >Delete</button>
+                {trRecords.length > 0 ? (
+                  <ul>
+                    {trRecords.map(t => (
+                      <li key={t.treatmentId} className="mb-2 border-b border-pink-200 pb-2">
+                        <p>Service: {t.serviceGiven}</p>
+                        <p>Findings: {t.findings}</p>
+                        <p>Medicine: {t.medicinePrescribed}</p>
+                        <p>Date: {t.serviceDate}</p>
+                        <div className="flex gap-2 mt-1">
+                          <button onClick={() => setModal({ type: 'edit', treatment: t })} className="bg-yellow-400 px-2 py-1 rounded">Edit</button>
+                          <button onClick={() => deleteTreatment(t.treatmentId)} className="bg-red-500 text-white px-2 py-1 rounded">Delete</button>
                         </div>
                       </li>
                     ))}
                   </ul>
-                ) : (
-                  <p className="text-gray-500">No records found.</p>
-                )}
+                ) : <p>No records</p>}
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Modal */}
       {modal.type && (
-        <TreatmentModal
-          modal={modal}
-          close={() => setModal({ type: null, treatment: null })}
-          addTreatment={addTreatment}
-          editTreatment={editTreatment}
+        <TreatmentModal 
+          modal={modal} 
+          close={() => setModal({ type: null, treatment: null, appointmentId: null })}
+          addTreatment={addTreatment} 
+          editTreatment={editTreatment} 
         />
       )}
     </div>
   );
 }
 
-// ----------------- Modal Component -----------------
 function TreatmentModal({ modal, close, addTreatment, editTreatment }) {
   const isEdit = modal.type === 'edit';
   const [form, setForm] = useState({
-    petId: modal.petId || modal.treatment?.petId || '',
+    appointmentId: modal.appointmentId || modal.treatment?.appointment?.appointmentId || '',
     serviceGiven: modal.treatment?.serviceGiven || '',
     findings: modal.treatment?.findings || '',
     medicinePrescribed: modal.treatment?.medicinePrescribed || '',
     serviceDate: modal.treatment?.serviceDate || '',
   });
 
-  const handleSubmit = () => {
-    if (isEdit) {
-      editTreatment({ ...form, id: modal.treatment.id });
-    } else {
-      addTreatment(form);
-    }
+  useEffect(() => {
+    setForm({
+      appointmentId: modal.appointmentId || modal.treatment?.appointment?.appointmentId || '',
+      serviceGiven: modal.treatment?.serviceGiven || '',
+      findings: modal.treatment?.findings || '',
+      medicinePrescribed: modal.treatment?.medicinePrescribed || '',
+      serviceDate: modal.treatment?.serviceDate || '',
+    });
+  }, [modal]);
+
+  const handleChange = e => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  const handleSubmit = e => { 
+    e.preventDefault(); 
+    isEdit ? editTreatment({ ...form, treatmentId: modal.treatment.treatmentId }) : addTreatment(form); 
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-xl w-96 shadow-lg">
-        <h2 className="text-xl font-bold mb-4">{isEdit ? 'Edit' : 'Add'} Treatment</h2>
-
-        <div className="flex flex-col gap-3">
-          <label>Service Given:</label>
-          <input
-            type="text"
-            value={form.serviceGiven}
-            onChange={e => setForm({ ...form, serviceGiven: e.target.value })}
-            className="border p-2 rounded"
-          />
-
-          <label>Findings:</label>
-          <input
-            type="text"
-            value={form.findings}
-            onChange={e => setForm({ ...form, findings: e.target.value })}
-            className="border p-2 rounded"
-          />
-
-          <label>Medicine Prescribed:</label>
-          <input
-            type="text"
-            value={form.medicinePrescribed}
-            onChange={e => setForm({ ...form, medicinePrescribed: e.target.value })}
-            className="border p-2 rounded"
-          />
-
-          <label>Service Date:</label>
-          <input
-            type="date"
-            value={form.serviceDate}
-            onChange={e => setForm({ ...form, serviceDate: e.target.value })}
-            className="border p-2 rounded"
-          />
-        </div>
-
-        <div className="flex justify-end gap-2 mt-4">
-          <button onClick={close} className="px-4 py-2 rounded bg-gray-200">Cancel</button>
-          <button onClick={handleSubmit} className="px-4 py-2 rounded bg-pink-400 text-white">{isEdit ? 'Save' : 'Add'}</button>
-        </div>
+      <div className="bg-white p-6 rounded-xl w-96">
+        <h2 className="text-xl font-semibold mb-4">{isEdit ? 'Edit' : 'Add'} Treatment</h2>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+          <input type="hidden" name="appointmentId" value={form.appointmentId} />
+          <input name="serviceGiven" placeholder="Service Given" value={form.serviceGiven} onChange={handleChange} required className="p-2 border rounded"/>
+          <input name="findings" placeholder="Findings" value={form.findings} onChange={handleChange} required className="p-2 border rounded"/>
+          <input name="medicinePrescribed" placeholder="Medicine" value={form.medicinePrescribed} onChange={handleChange} className="p-2 border rounded"/>
+          <input type="date" name="serviceDate" value={form.serviceDate} onChange={handleChange} required className="p-2 border rounded"/>
+          <div className="flex justify-end gap-2 mt-2">
+            <button type="button" onClick={close} className="px-4 py-2 border rounded">Cancel</button>
+            <button type="submit" className="px-4 py-2 bg-pink-400 text-white rounded">{isEdit ? 'Save' : 'Add'}</button>
+          </div>
+        </form>
       </div>
     </div>
   );

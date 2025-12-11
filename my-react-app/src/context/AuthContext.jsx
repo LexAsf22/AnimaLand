@@ -1,23 +1,27 @@
+// src/context/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from "react";
-import api from "../api";
+import api from "../api/api";
 
-const AuthContext = createContext();
+// Create context without default functions (simpler for Fast Refresh)
+const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(localStorage.getItem("token"));
-  const [username, setUsername] = useState(localStorage.getItem("username"));
-  const [role, setRole] = useState(localStorage.getItem("role"));
+  const [token, setToken] = useState(null);
+  const [username, setUsername] = useState(null);
+  const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Load from localStorage on mount
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
-    const storedUsername = localStorage.getItem("username");
-    const storedRole = localStorage.getItem("role");
-
     if (storedToken) {
+      const storedUsername = localStorage.getItem("username");
+      const storedRole = localStorage.getItem("role");
+
       setToken(storedToken);
       setUsername(storedUsername);
       setRole(storedRole);
+
       api.defaults.headers.common["Authorization"] = `Bearer ${storedToken}`;
     }
     setLoading(false);
@@ -54,6 +58,9 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export function useAuth() {
-  return useContext(AuthContext);
-}
+// Simple top-level named export
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error("useAuth must be used within AuthProvider");
+  return context;
+};

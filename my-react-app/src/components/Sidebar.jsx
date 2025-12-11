@@ -10,9 +10,9 @@ function Sidebar({ status }) {
     { text: "Dashboard", path: "/dashboard", icon: "🏠" },
     { text: "Users", path: "/users", icon: "👤" },
     { text: "Employee", path: "/employee", icon: "💼" },
+    { text: "Pets", path: "/pets", icon: "🐾" },
     { text: "Appointment", path: "/appointment", icon: "📅" },
     { text: "Treatment Records", path: "/treatment-records", icon: "📝" },
-    { text: "Settings", path: "/settings", icon: "⚙️" },
   ];
 
   if (!status) return null;
