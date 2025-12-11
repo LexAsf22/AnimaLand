@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin
+@CrossOrigin(origins = "*")
 public class ApiAuthController {
 
     private final AuthenticationManager authenticationManager;
@@ -58,14 +58,13 @@ public class ApiAuthController {
     @PostMapping("/register")
     public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
 
-        // create EmployeeDTO
         EmployeeDTO dto = new EmployeeDTO();
         dto.setUsername(request.username());
-        dto.setPassword(request.password());
+        dto.setPassword(request.password()); // will be encoded
         dto.setRole(request.role());
-        dto.setFirstName("FirstName"); // default
-        dto.setLastName("LastName");   // default
-        dto.setContactNumber("000-0000"); // default
+        dto.setFirstName("FirstName");
+        dto.setLastName("LastName");
+        dto.setContactNumber("000-0000");
 
         employeeService.save(dto);
 
@@ -87,7 +86,6 @@ public class ApiAuthController {
         );
     }
 
-    // ---------------- VALIDATE TOKEN ----------------
     @GetMapping("/validate")
     public String validateToken() {
         return "Token is valid";

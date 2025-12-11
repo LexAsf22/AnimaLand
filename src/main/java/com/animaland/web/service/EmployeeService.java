@@ -76,13 +76,15 @@ public class EmployeeService {
 
     // ---------------- Additional Stats ----------------
     public long count() {
-        // Total number of employees
         return employeeRepository.count();
     }
 
-    public long countActive() {
-        // Count all employees whose role is NOT "Inactive"
-        return employeeRepository.countByRoleNot("Inactive");
+    public long countByRole(String role) {
+        return employeeRepository.countByRole(role);
+    }
+
+    public long countByRoleNot(String role) {
+        return employeeRepository.countByRoleNot(role);
     }
 
     // ---------------- Password Migration ----------------

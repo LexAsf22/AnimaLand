@@ -14,70 +14,57 @@ import java.util.List;
 @Service
 public class TreatmentRecordService {
 
-    private final TreatmentRecordRepository treatmentRecordRepository;
-    private final AppointmentRepository appointmentRepository;
+    private final TreatmentRecordRepository treatmentRepo;
+    private final AppointmentRepository appointmentRepo;
 
-    public TreatmentRecordService(TreatmentRecordRepository treatmentRecordRepository,
-                                  AppointmentRepository appointmentRepository) {
-        this.treatmentRecordRepository = treatmentRecordRepository;
-        this.appointmentRepository = appointmentRepository;
+    public TreatmentRecordService(TreatmentRecordRepository treatmentRepo, AppointmentRepository appointmentRepo) {
+        this.treatmentRepo = treatmentRepo;
+        this.appointmentRepo = appointmentRepo;
     }
 
-    /**
-     * Fetch all treatments
-     */
     public List<TreatmentRecord> findAll() {
-        return treatmentRecordRepository.findAll();
+        return treatmentRepo.findAll();
     }
 
-    /**
-     * Find a treatment by ID
-     */
     public TreatmentRecord findById(Long id) {
-        return treatmentRecordRepository.findById(id).orElse(null);
+        return treatmentRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Treatment not found"));
     }
 
-    /**
-     * Save a new treatment
-     */
     public TreatmentRecord save(TreatmentRecordDTO dto) {
-        TreatmentRecord treatmentRecord = new TreatmentRecord();
-        applyDtoToTreatmentRecord(treatmentRecord, dto);
-        return treatmentRecordRepository.save(treatmentRecord);
-    }
-
-    /**
-     * Update an existing treatment
-     */
-    public TreatmentRecord updateTreatment(TreatmentRecord treatmentRecord, TreatmentRecordDTO dto) {
-        applyDtoToTreatmentRecord(treatmentRecord, dto);
-        return treatmentRecordRepository.save(treatmentRecord);
-    }
-
-    /**
-     * Delete a treatment by ID
-     */
-    public void deleteTreatment(Long id) {
-        treatmentRecordRepository.deleteById(id);
-    }
-
-    /**
-     * Get all treatments for a specific appointment
-     */
-    public List<TreatmentRecord> findByAppointmentId(Long appointmentId) {
-        return treatmentRecordRepository.findByAppointment_AppointmentId(appointmentId);
-    }
-
-    // Helper method to map DTO to entity
-    private void applyDtoToTreatmentRecord(TreatmentRecord treatmentRecord, TreatmentRecordDTO dto) {
-        treatmentRecord.setFindings(dto.getFindings());
-        treatmentRecord.setServiceGiven(dto.getServiceGiven());
-        treatmentRecord.setMedicinePrescribed(dto.getMedicinePrescribed());
-        treatmentRecord.setServiceDate(dto.getServiceDate());
-
-        Appointment appointment = appointmentRepository.findById(dto.getAppointmentId())
+        Appointment appt = appointmentRepo.findById(dto.getAppointmentId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found"));
 
-        treatmentRecord.setAppointment(appointment);
+        TreatmentRecord tr = new TreatmentRecord();
+        tr.setAppointment(appt);
+        tr.setServiceGiven(dto.getServiceGiven());
+        tr.setFindings(dto.getFindings());
+        tr.setMedicinePrescribed(dto.getMedicinePrescribed());
+        tr.setServiceDate(dto.getServiceDate());
+
+        // Mark appointment as completed
+        appt.setStatus("Completed");
+        appointmentRepo.save(appt);
+
+        return treatmentRepo.save(tr);
+    }
+
+    public TreatmentRecord updateTreatment(TreatmentRecord existing, TreatmentRecordDTO dto) {
+        existing.setServiceGiven(dto.getServiceGiven());
+        existing.setFindings(dto.getFindings());
+        existing.setMedicinePrescribed(dto.getMedicinePrescribed());
+        existing.setServiceDate(dto.getServiceDate());
+        return treatmentRepo.save(existing);
+    }
+
+    public void deleteTreatment(Long id) {
+        TreatmentRecord tr = findById(id);
+        treatmentRepo.delete(tr);
+    }
+
+    public List<TreatmentRecord> findByAppointmentId(Long appointmentId) {
+        Appointment appt = appointmentRepo.findById(appointmentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found"));
+        return treatmentRepo.findByAppointment(appt);
     }
 }

@@ -1,9 +1,11 @@
 package com.animaland.web.controller.api;
 
 import com.animaland.web.DTO.OwnerDTO;
+import com.animaland.web.DTO.response.OwnerResponseDTO;
 import com.animaland.web.models.Owner;
 import com.animaland.web.service.OwnerService;
 import jakarta.validation.Valid;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,64 +24,45 @@ public class OwnerController {
         this.ownerService = ownerService;
     }
 
-    // --------------------------
-    // GET ALL OWNERS
-    // --------------------------
+    // ---------------- GET ALL OWNERS (with pets) ----------------
     @GetMapping
-    public ResponseEntity<List<Owner>> getAllOwners() {
-        List<Owner> owners = ownerService.findAll();
-        return ResponseEntity.ok(owners);
+    public ResponseEntity<List<OwnerResponseDTO>> getAllOwners() {
+        return ResponseEntity.ok(ownerService.findAllDTO());
     }
 
-    // --------------------------
-    // CREATE OWNER
-    // --------------------------
+    // ---------------- CREATE OWNER ----------------
     @PostMapping
-    public ResponseEntity<Owner> createOwner(@Valid @RequestBody OwnerDTO ownerDTO) {
-        Owner created = ownerService.save(ownerDTO);
-        return new ResponseEntity<>(created, HttpStatus.CREATED);
-    }
-
-    // --------------------------
-    // UPDATE OWNER
-    // --------------------------
-    @PutMapping("/{id}")
-    public ResponseEntity<Owner> updateOwner(
-            @PathVariable Long id,
-            @Valid @RequestBody OwnerDTO ownerDTO
-    ) {
-        Owner existing = ownerService.findById(id);
-        if (existing == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Owner not found");
+    public ResponseEntity<?> createOwner(@Valid @RequestBody OwnerDTO ownerDTO) {
+        try {
+            Owner created = ownerService.save(ownerDTO);
+            return ResponseEntity.status(HttpStatus.CREATED).body(ownerService.toResponseDTO(created));
+        } catch (DataIntegrityViolationException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("{\"error\":\"" + e.getMessage() + "\"}");
         }
-
-        Owner updated = ownerService.updateOwner(existing, ownerDTO);
-        return ResponseEntity.ok(updated);
     }
 
-    // --------------------------
-    // DELETE OWNER
-    // --------------------------
+    // ---------------- UPDATE OWNER ----------------
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateOwner(@PathVariable Long id, @Valid @RequestBody OwnerDTO ownerDTO) {
+        try {
+            Owner updated = ownerService.updateOwner(id, ownerDTO);
+            if (updated == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Owner not found");
+            }
+            return ResponseEntity.ok(ownerService.toResponseDTO(updated));
+        } catch (DataIntegrityViolationException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("{\"error\":\"" + e.getMessage() + "\"}");
+        }
+    }
+
+    // ---------------- DELETE OWNER ----------------
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteOwner(@PathVariable Long id) {
         Owner existing = ownerService.findById(id);
-        if (existing == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Owner not found");
-        }
-
+        if (existing == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Owner not found");
         ownerService.deleteOwner(id);
         return ResponseEntity.noContent().build();
-    }
-
-    // --------------------------
-    // FIND OWNER BY EMAIL
-    // --------------------------
-    @GetMapping("/email/{email}")
-    public ResponseEntity<Owner> findOwnerByEmail(@PathVariable String email) {
-        Owner owner = ownerService.findByEmail(email);
-        if (owner == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Owner not found");
-        }
-        return ResponseEntity.ok(owner);
     }
 }

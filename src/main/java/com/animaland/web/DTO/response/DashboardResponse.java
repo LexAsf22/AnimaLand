@@ -1,4 +1,4 @@
-package com.animaland.web.DTO;
+package com.animaland.web.DTO.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

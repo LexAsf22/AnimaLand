@@ -1,32 +1,32 @@
-package com.animaland.web.models;
+package com.animaland.web.DTO.response;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.*;
 import java.time.LocalDate;
 
-@Entity
-@Table(name = "treatment_records")
-public class TreatmentRecord {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+public class TreatmentResponseDTO {
     private Long treatmentId;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "appointment_id", nullable = false)
-    @JsonIgnore // prevent recursion
-    private Appointment appointment;
-
+    private Long appointmentId;
     private String findings;
     private String serviceGiven;
     private String medicinePrescribed;
     private LocalDate serviceDate;
 
-    // Getters and setters
+    public TreatmentResponseDTO() {}
+
+    public TreatmentResponseDTO(Long treatmentId, Long appointmentId, String findings,
+                                String serviceGiven, String medicinePrescribed, LocalDate serviceDate) {
+        this.treatmentId = treatmentId;
+        this.appointmentId = appointmentId;
+        this.findings = findings;
+        this.serviceGiven = serviceGiven;
+        this.medicinePrescribed = medicinePrescribed;
+        this.serviceDate = serviceDate;
+    }
+
+    // Getters & Setters
     public Long getTreatmentId() { return treatmentId; }
     public void setTreatmentId(Long treatmentId) { this.treatmentId = treatmentId; }
-    public Appointment getAppointment() { return appointment; }
-    public void setAppointment(Appointment appointment) { this.appointment = appointment; }
+    public Long getAppointmentId() { return appointmentId; }
+    public void setAppointmentId(Long appointmentId) { this.appointmentId = appointmentId; }
     public String getFindings() { return findings; }
     public void setFindings(String findings) { this.findings = findings; }
     public String getServiceGiven() { return serviceGiven; }

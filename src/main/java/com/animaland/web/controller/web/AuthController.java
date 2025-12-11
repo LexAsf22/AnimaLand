@@ -6,9 +6,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class AuthController {
 
-    @GetMapping("/auth/login")
+    @GetMapping("/auth/web-login")
     public String loginPage() {
-        // Returns the login page (Thymeleaf)
-        return "login";
+        return "login"; // Thymeleaf login.html
     }
 }

@@ -1,56 +1,43 @@
-package com.animaland.web.DTO;
+package com.animaland.web.DTO.response;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-
-public class PetDTO {
-
-    @NotBlank
+public class PetResponseDTO {
+    private Long petId;
     private String name;
-
-    @NotBlank
     private String species;
-
-    @NotBlank
     private String breed;
-
-    @NotNull
-    private Integer age;
-
-    @NotBlank
+    private int age;
     private String gender;
-
-    @NotNull
     private Long ownerId;
+    private String ownerName;
 
     // Constructors
-    public PetDTO() {}
-
-    public PetDTO(String name, String species, String breed, Integer age, String gender, Long ownerId) {
+    public PetResponseDTO() {}
+    public PetResponseDTO(Long petId, String name, String species, String breed, int age, String gender, Long ownerId, String ownerName) {
+        this.petId = petId;
         this.name = name;
         this.species = species;
         this.breed = breed;
         this.age = age;
         this.gender = gender;
         this.ownerId = ownerId;
+        this.ownerName = ownerName;
     }
 
-    // Getters and Setters
+    // Getters & Setters
+    public Long getPetId() { return petId; }
+    public void setPetId(Long petId) { this.petId = petId; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
-
     public String getSpecies() { return species; }
     public void setSpecies(String species) { this.species = species; }
-
     public String getBreed() { return breed; }
     public void setBreed(String breed) { this.breed = breed; }
-
-    public Integer getAge() { return age; }
-    public void setAge(Integer age) { this.age = age; }
-
+    public int getAge() { return age; }
+    public void setAge(int age) { this.age = age; }
     public String getGender() { return gender; }
     public void setGender(String gender) { this.gender = gender; }
-
     public Long getOwnerId() { return ownerId; }
     public void setOwnerId(Long ownerId) { this.ownerId = ownerId; }
+    public String getOwnerName() { return ownerName; }
+    public void setOwnerName(String ownerName) { this.ownerName = ownerName; }
 }

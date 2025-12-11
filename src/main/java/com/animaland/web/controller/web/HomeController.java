@@ -31,7 +31,6 @@ public class HomeController {
                           PetRepository petRepository,
                           ServiceEntityRepository serviceEntityRepository,
                           EmployeeRepository employeeRepository) {
-
         this.appointmentRepository = appointmentRepository;
         this.petRepository = petRepository;
         this.serviceEntityRepository = serviceEntityRepository;
@@ -54,11 +53,9 @@ public class HomeController {
     @GetMapping("/create")
     public String create(Model model) {
         model.addAttribute("appointment", new AppointmentDTO());
-
         model.addAttribute("pets", petRepository.findAll());
         model.addAttribute("services", serviceEntityRepository.findAll());
         model.addAttribute("employees", employeeRepository.findAll());
-
         return "create";
     }
 
@@ -83,17 +80,14 @@ public class HomeController {
         appointment.setRemarks(dto.getRemarks());
         appointment.setStatus("Pending");
 
-        // Pet
         Pet pet = petRepository.findById(dto.getPetId())
                 .orElseThrow(() -> new ResourceNotFoundException("Pet", dto.getPetId()));
         appointment.setPet(pet);
 
-        // Service
         ServiceEntity serviceEntity = serviceEntityRepository.findById(dto.getServiceId())
                 .orElseThrow(() -> new ResourceNotFoundException("Service", dto.getServiceId()));
         appointment.setService(serviceEntity);
 
-        // Staff
         Employee employee = employeeRepository.findById(dto.getStaffId())
                 .orElseThrow(() -> new ResourceNotFoundException("Employee", dto.getStaffId()));
         appointment.setStaff(employee);

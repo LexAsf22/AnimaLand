@@ -1,9 +1,10 @@
 package com.animaland.web.service;
 
 import com.animaland.web.DTO.AppointmentDTO;
+import com.animaland.web.DTO.dashboard.RecentAppointmentResponse;
 import com.animaland.web.models.Appointment;
-import com.animaland.web.models.ServiceEntity;
 import com.animaland.web.models.Pet;
+import com.animaland.web.models.ServiceEntity;
 import com.animaland.web.models.Employee;
 import com.animaland.web.repository.AppointmentRepository;
 import com.animaland.web.repository.PetRepository;
@@ -20,58 +21,72 @@ public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
     private final PetRepository petRepository;
-    private final ServiceEntityRepository serviceEntityRepository;
+    private final ServiceEntityRepository serviceRepository;
     private final EmployeeRepository employeeRepository;
 
     public AppointmentService(AppointmentRepository appointmentRepository,
                               PetRepository petRepository,
-                              ServiceEntityRepository serviceEntityRepository,
+                              ServiceEntityRepository serviceRepository,
                               EmployeeRepository employeeRepository) {
         this.appointmentRepository = appointmentRepository;
         this.petRepository = petRepository;
-        this.serviceEntityRepository = serviceEntityRepository;
+        this.serviceRepository = serviceRepository;
         this.employeeRepository = employeeRepository;
     }
 
+    // Create a new appointment
+    public Appointment save(AppointmentDTO dto) {
+        Appointment appt = new Appointment();
+        applyDto(appt, dto);
+        return appointmentRepository.save(appt);
+    }
+
+    // Update an existing appointment
+    public Appointment updateAppointment(Appointment existing, AppointmentDTO dto) {
+        applyDto(existing, dto);
+        return appointmentRepository.save(existing);
+    }
+
+    // Delete an appointment by ID
+    public void deleteAppointment(Long id) {
+        if (!appointmentRepository.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found");
+        }
+        appointmentRepository.deleteById(id);
+    }
+
+    // Find all appointments
     public List<Appointment> findAll() {
         return appointmentRepository.findAll();
     }
 
+    // Find appointment by ID
     public Appointment findById(Long id) {
-        return appointmentRepository.findById(id).orElse(null);
+        return appointmentRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found"));
     }
 
-    public Appointment save(AppointmentDTO dto) {
-        Appointment appointment = new Appointment();
-        applyDtoToAppointment(appointment, dto);
-        return appointmentRepository.save(appointment);
+    // Get recent appointments
+    public List<RecentAppointmentResponse> getRecentAppointments() {
+        return appointmentRepository.findRecentAppointments();
     }
 
-    public Appointment updateAppointment(Appointment existing, AppointmentDTO dto) {
-        applyDtoToAppointment(existing, dto);
-        return appointmentRepository.save(existing);
-    }
-
-    public void deleteAppointment(Long id) {
-        appointmentRepository.deleteById(id);
-    }
-
-    private void applyDtoToAppointment(Appointment appointment, AppointmentDTO dto) {
-        // Fetch related entities
+    // -------------------- PRIVATE HELPER --------------------
+    private void applyDto(Appointment appt, AppointmentDTO dto) {
         Pet pet = petRepository.findById(dto.getPetId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pet not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pet not found"));
 
-        ServiceEntity serviceEntity = serviceEntityRepository.findById(dto.getServiceId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service not found"));
+        ServiceEntity service = serviceRepository.findById(dto.getServiceId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Service not found"));
 
         Employee staff = employeeRepository.findById(dto.getStaffId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Staff not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Staff not found"));
 
-        appointment.setPet(pet);
-        appointment.setService(serviceEntity);
-        appointment.setStaff(staff);
-        appointment.setAppointmentDatetime(dto.getAppointmentDatetime());
-        appointment.setStatus(dto.getStatus());
-        appointment.setRemarks(dto.getRemarks());
+        appt.setPet(pet);
+        appt.setService(service);
+        appt.setStaff(staff);
+        appt.setAppointmentDatetime(dto.getAppointmentDatetime());
+        appt.setStatus(dto.getStatus());
+        appt.setRemarks(dto.getRemarks());
     }
 }

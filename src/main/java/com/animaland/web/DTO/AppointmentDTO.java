@@ -1,46 +1,20 @@
 package com.animaland.web.DTO;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
-import java.util.List;
 
 public class AppointmentDTO {
 
-    private Long appointmentId;
-
-    @NotNull(message = "Appointment date and time is required")
+    private Long appointmentId; // <-- NEW: required for edit/update
+    private Long petId;
+    private Long serviceId;
+    private Long staffId;
     private LocalDateTime appointmentDatetime;
-
-    @NotBlank(message = "Status is required")
     private String status;
-
-    @NotBlank(message = "Remarks are required")
     private String remarks;
 
-    @NotNull(message = "Pet ID is required")
-    private Long petId;
-
-    @NotNull(message = "Service ID is required")
-    private Long serviceId;
-
-    @NotNull(message = "Staff ID is required")
-    private Long staffId;
-
-    private List<Long> treatmentIds;
-
-    // Getters & Setters
+    // Getters and Setters
     public Long getAppointmentId() { return appointmentId; }
     public void setAppointmentId(Long appointmentId) { this.appointmentId = appointmentId; }
-
-    public LocalDateTime getAppointmentDatetime() { return appointmentDatetime; }
-    public void setAppointmentDatetime(LocalDateTime appointmentDatetime) { this.appointmentDatetime = appointmentDatetime; }
-
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
-
-    public String getRemarks() { return remarks; }
-    public void setRemarks(String remarks) { this.remarks = remarks; }
 
     public Long getPetId() { return petId; }
     public void setPetId(Long petId) { this.petId = petId; }
@@ -51,6 +25,12 @@ public class AppointmentDTO {
     public Long getStaffId() { return staffId; }
     public void setStaffId(Long staffId) { this.staffId = staffId; }
 
-    public List<Long> getTreatmentIds() { return treatmentIds; }
-    public void setTreatmentIds(List<Long> treatmentIds) { this.treatmentIds = treatmentIds; }
+    public LocalDateTime getAppointmentDatetime() { return appointmentDatetime; }
+    public void setAppointmentDatetime(LocalDateTime appointmentDatetime) { this.appointmentDatetime = appointmentDatetime; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+
+    public String getRemarks() { return remarks; }
+    public void setRemarks(String remarks) { this.remarks = remarks; }
 }
