@@ -1,16 +1,14 @@
 package com.animaland.web.controller.api;
 
 import com.animaland.web.DTO.AppointmentDTO;
-import com.animaland.web.DTO.AppointmentResponseDTO;
 import com.animaland.web.DTO.dashboard.RecentAppointmentResponse;
+import com.animaland.web.DTO.response.AppointmentResponseDTO;
 import com.animaland.web.models.Appointment;
 import com.animaland.web.service.AppointmentService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
-
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,7 +25,7 @@ public class AppointmentController {
 
     @GetMapping
     public ResponseEntity<List<AppointmentResponseDTO>> getAllAppointments() {
-        List<AppointmentResponseDTO> list = appointmentService.findAll().stream()
+        List<AppointmentResponseDTO> list = appointmentService.findAllWithRelations().stream()
                 .map(a -> new AppointmentResponseDTO(
                         a.getAppointmentId(),
                         a.getAppointmentDatetime(),
@@ -37,6 +35,8 @@ public class AppointmentController {
                         a.getStaff().getFirstName() + " " + a.getStaff().getLastName(),
                         a.getPet().getPetId(),
                         a.getPet().getName(),
+                        a.getPet().getOwner().getOwnerId(),
+                        a.getPet().getOwner().getFirstName() + " " + a.getPet().getOwner().getLastName(),
                         a.getService().getServiceId(),
                         a.getService().getServiceName()
                 ))
@@ -61,6 +61,8 @@ public class AppointmentController {
                 created.getStaff().getFirstName() + " " + created.getStaff().getLastName(),
                 created.getPet().getPetId(),
                 created.getPet().getName(),
+                created.getPet().getOwner().getOwnerId(),
+                created.getPet().getOwner().getFirstName() + " " + created.getPet().getOwner().getLastName(),
                 created.getService().getServiceId(),
                 created.getService().getServiceName()
         );
@@ -68,9 +70,9 @@ public class AppointmentController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<AppointmentResponseDTO> updateAppointment(@PathVariable Long id, @Valid @RequestBody AppointmentDTO dto) {
+    public ResponseEntity<AppointmentResponseDTO> updateAppointment(@PathVariable Long id,
+                                                                    @Valid @RequestBody AppointmentDTO dto) {
         Appointment existing = appointmentService.findById(id);
-        if (existing == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found");
         Appointment updated = appointmentService.updateAppointment(existing, dto);
         AppointmentResponseDTO response = new AppointmentResponseDTO(
                 updated.getAppointmentId(),
@@ -81,6 +83,8 @@ public class AppointmentController {
                 updated.getStaff().getFirstName() + " " + updated.getStaff().getLastName(),
                 updated.getPet().getPetId(),
                 updated.getPet().getName(),
+                updated.getPet().getOwner().getOwnerId(),
+                updated.getPet().getOwner().getFirstName() + " " + updated.getPet().getOwner().getLastName(),
                 updated.getService().getServiceId(),
                 updated.getService().getServiceName()
         );

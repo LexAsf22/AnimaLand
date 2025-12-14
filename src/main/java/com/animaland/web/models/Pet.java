@@ -27,16 +27,15 @@ public class Pet {
     @Column(nullable = false)
     private String gender;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER) // Fetch owner eagerly
     @JoinColumn(name = "owner_id", nullable = false)
-    @JsonIgnore // prevent recursion
     private Owner owner;
 
     @OneToMany(mappedBy = "pet", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnore // prevent recursion
+    @JsonIgnore
     private List<Appointment> appointments;
 
-    // Getters and setters
+    // Getters and Setters
     public Long getPetId() { return petId; }
     public void setPetId(Long petId) { this.petId = petId; }
     public String getName() { return name; }

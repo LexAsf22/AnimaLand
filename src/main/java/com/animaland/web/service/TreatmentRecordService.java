@@ -5,66 +5,73 @@ import com.animaland.web.models.Appointment;
 import com.animaland.web.models.TreatmentRecord;
 import com.animaland.web.repository.AppointmentRepository;
 import com.animaland.web.repository.TreatmentRecordRepository;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
+@Transactional
 public class TreatmentRecordService {
 
-    private final TreatmentRecordRepository treatmentRepo;
-    private final AppointmentRepository appointmentRepo;
+    private final TreatmentRecordRepository treatmentRecordRepository;
+    private final AppointmentRepository appointmentRepository;
 
-    public TreatmentRecordService(TreatmentRecordRepository treatmentRepo, AppointmentRepository appointmentRepo) {
-        this.treatmentRepo = treatmentRepo;
-        this.appointmentRepo = appointmentRepo;
+    public TreatmentRecordService(TreatmentRecordRepository treatmentRecordRepository,
+                                  AppointmentRepository appointmentRepository) {
+        this.treatmentRecordRepository = treatmentRecordRepository;
+        this.appointmentRepository = appointmentRepository;
     }
 
     public List<TreatmentRecord> findAll() {
-        return treatmentRepo.findAll();
-    }
-
-    public TreatmentRecord findById(Long id) {
-        return treatmentRepo.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Treatment not found"));
+        return treatmentRecordRepository.findAll();
     }
 
     public TreatmentRecord save(TreatmentRecordDTO dto) {
-        Appointment appt = appointmentRepo.findById(dto.getAppointmentId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found"));
+        Appointment appointment = appointmentRepository.findById(dto.getAppointmentId())
+                .orElseThrow(() -> new RuntimeException("Appointment not found"));
+
+        // Ensure appointment is completed
+        if (!"COMPLETED".equalsIgnoreCase(appointment.getStatus())) {
+            throw new RuntimeException("Appointment must be completed before adding a treatment record");
+        }
 
         TreatmentRecord tr = new TreatmentRecord();
-        tr.setAppointment(appt);
+        tr.setAppointment(appointment);
         tr.setServiceGiven(dto.getServiceGiven());
         tr.setFindings(dto.getFindings());
         tr.setMedicinePrescribed(dto.getMedicinePrescribed());
-        tr.setServiceDate(dto.getServiceDate());
+        tr.setServiceDate(dto.getServiceDate() != null && !dto.getServiceDate().isEmpty() ?
+                LocalDate.parse(dto.getServiceDate()) : LocalDate.now());
+        tr.setTotalBill(dto.getTotalBill() != null ? dto.getTotalBill() : 0.0);
 
-        // Mark appointment as completed
-        appt.setStatus("Completed");
-        appointmentRepo.save(appt);
+        return treatmentRecordRepository.save(tr);
+    }
 
-        return treatmentRepo.save(tr);
+    public TreatmentRecord findById(Long id) {
+        return treatmentRecordRepository.findById(id).orElse(null);
     }
 
     public TreatmentRecord updateTreatment(TreatmentRecord existing, TreatmentRecordDTO dto) {
+        if (dto.getAppointmentId() != null) {
+            Appointment appointment = appointmentRepository.findById(dto.getAppointmentId())
+                    .orElseThrow(() -> new RuntimeException("Appointment not found"));
+            existing.setAppointment(appointment);
+        }
+
         existing.setServiceGiven(dto.getServiceGiven());
         existing.setFindings(dto.getFindings());
         existing.setMedicinePrescribed(dto.getMedicinePrescribed());
-        existing.setServiceDate(dto.getServiceDate());
-        return treatmentRepo.save(existing);
+        if (dto.getServiceDate() != null && !dto.getServiceDate().isEmpty()) {
+            existing.setServiceDate(LocalDate.parse(dto.getServiceDate()));
+        }
+        existing.setTotalBill(dto.getTotalBill() != null ? dto.getTotalBill() : 0.0);
+
+        return treatmentRecordRepository.save(existing);
     }
 
     public void deleteTreatment(Long id) {
-        TreatmentRecord tr = findById(id);
-        treatmentRepo.delete(tr);
-    }
-
-    public List<TreatmentRecord> findByAppointmentId(Long appointmentId) {
-        Appointment appt = appointmentRepo.findById(appointmentId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found"));
-        return treatmentRepo.findByAppointment(appt);
+        treatmentRecordRepository.deleteById(id);
     }
 }

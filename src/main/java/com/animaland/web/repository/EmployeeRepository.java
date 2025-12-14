@@ -12,9 +12,6 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     Optional<Employee> findByUsername(String username);
     boolean existsByUsername(String username);
 
-    // Count employees by role
     long countByRole(String role);
-
-    // Count employees whose role is NOT the given value
     long countByRoleNot(String role);
 }
