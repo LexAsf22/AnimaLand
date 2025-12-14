@@ -30,60 +30,42 @@ public class ApiAuthController {
         this.employeeService = employeeService;
     }
 
-    // ---------------- LOGIN ----------------
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody AuthRequest request) {
-
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.username(),
-                        request.password()
-                )
+                new UsernamePasswordAuthenticationToken(request.username(), request.password())
         );
 
         String token = jwtTokenService.generateToken(authentication);
         Long expiresAt = jwtTokenService.extractExpirationTime(token);
-
         Employee employee = employeeService.findByUsername(authentication.getName());
 
-        return new AuthResponse(
-                token,
-                employee.getUsername(),
-                employee.getRole(),
-                expiresAt
-        );
+        return new AuthResponse(token, employee.getUsername(), employee.getRole(), expiresAt);
     }
 
-    // ---------------- REGISTER ----------------
     @PostMapping("/register")
     public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
-
+        // Convert RegisterRequest to EmployeeDTO
         EmployeeDTO dto = new EmployeeDTO();
         dto.setUsername(request.username());
-        dto.setPassword(request.password()); // will be encoded
+        dto.setPassword(request.password());
         dto.setRole(request.role());
-        dto.setFirstName("FirstName");
-        dto.setLastName("LastName");
-        dto.setContactNumber("000-0000");
+        dto.setFirstName(request.firstName());
+        dto.setLastName(request.lastName());
+        dto.setContactNumber(request.contactNumber());
 
+        // Save the new employee
         employeeService.save(dto);
 
+        // Automatically log in the newly registered employee
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.username(),
-                        request.password()
-                )
+                new UsernamePasswordAuthenticationToken(request.username(), request.password())
         );
 
         String token = jwtTokenService.generateToken(authentication);
         Long expiresAt = jwtTokenService.extractExpirationTime(token);
 
-        return new AuthResponse(
-                token,
-                request.username(),
-                request.role(),
-                expiresAt
-        );
+        return new AuthResponse(token, request.username(), request.role(), expiresAt);
     }
 
     @GetMapping("/validate")

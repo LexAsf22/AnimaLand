@@ -21,8 +21,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
-import static org.springframework.security.config.Customizer.withDefaults;
-
 @Configuration
 public class SecurityConfig {
 
@@ -32,83 +30,53 @@ public class SecurityConfig {
         this.customUserDetailsService = userDetailsService;
     }
 
-    /** -----------------------------------------
-     * Password Encoder
-     * ----------------------------------------- */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    /** -----------------------------------------
-     * Authentication Manager (DaoAuthenticationProvider)
-     * ----------------------------------------- */
     @Bean
-    public AuthenticationManager authManager(
-            UserDetailsService userDetailsService,
-            PasswordEncoder passwordEncoder) {
-
-        var authProvider = new DaoAuthenticationProvider();
+    public AuthenticationManager authManager(UserDetailsService userDetailsService, PasswordEncoder passwordEncoder) {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
         authProvider.setUserDetailsService(userDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder);
-
         return new ProviderManager(authProvider);
     }
 
-    /** -----------------------------------------
-     * JWT Converter (Remove ROLE_ prefix)
-     * ----------------------------------------- */
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter granted = new JwtGrantedAuthoritiesConverter();
-        granted.setAuthorityPrefix("");
-
+        granted.setAuthorityPrefix(""); // remove ROLE_ prefix
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(granted);
-
         return converter;
     }
 
-    /** -----------------------------------------
-     * API Security (JWT, Stateless)
-     * Priority 1
-     * ----------------------------------------- */
     @Bean
     @Order(1)
     public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
-        return http
+        http
                 .securityMatcher("/api/**")
-                .cors(withDefaults())
-                .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers("/api/auth/**").permitAll();
-                    auth.requestMatchers("/api/public/**").permitAll();
-                    auth.anyRequest().authenticated();
-                })
-                .sessionManagement(sess ->
-                        sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .oauth2ResourceServer(oauth2 ->
-                        oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
-                .build();
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/auth/**", "/api/public/**").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
+                .cors(cors -> {}) // enable default CORS
+                .csrf(csrf -> csrf.disable());
+        return http.build();
     }
 
-    /** -----------------------------------------
-     * Web Security (Session-based)
-     * Priority 2
-     * ----------------------------------------- */
     @Bean
     @Order(2)
     public SecurityFilterChain webSecurityFilterChain(HttpSecurity http) throws Exception {
-        return http
+        http
                 .securityMatcher("/**")
-                .cors(withDefaults())
-                .csrf(withDefaults())
-                .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers("/", "/login", "/register", "/public/**",
-                                    "/css/**", "/js/**", "/images/**", "/uploads/**")
-                            .permitAll();
-                    auth.anyRequest().authenticated();
-                })
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/", "/login", "/register", "/css/**", "/js/**", "/images/**", "/uploads/**").permitAll()
+                        .anyRequest().authenticated()
+                )
                 .formLogin(form -> form
                         .loginPage("/login")
                         .defaultSuccessUrl("/", true)
@@ -119,32 +87,22 @@ public class SecurityConfig {
                         .logoutSuccessUrl("/login?logout")
                         .permitAll()
                 )
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
-                .build();
+                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                .cors(cors -> {}) // enable default CORS
+                .csrf(csrf -> csrf.disable());
+        return http.build();
     }
 
-    /** -----------------------------------------
-     * CORS Configuration
-     * ----------------------------------------- */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-
-        config.setAllowedOrigins(List.of(
-                "http://localhost:5173",
-                "http://localhost:5500",
-                "http://127.0.0.1:5173",
-                "http://127.0.0.1:5500"
-        ));
-
+        config.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:5500"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
-
         return source;
     }
 }

@@ -21,7 +21,9 @@ public class EmployeeService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    // ---------------- CRUD ----------------
+    /* ==========================
+       CRUD OPERATIONS
+       ========================== */
     public List<Employee> findAll() {
         return employeeRepository.findAll();
     }
@@ -48,11 +50,9 @@ public class EmployeeService {
 
     public Employee updateEmployee(Employee existing, EmployeeDTO dto) {
         applyDtoToEmployee(existing, dto);
-
         if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
             existing.setPassword(passwordEncoder.encode(dto.getPassword()));
         }
-
         return employeeRepository.save(existing);
     }
 
@@ -66,37 +66,14 @@ public class EmployeeService {
         return passwordEncoder.matches(rawPassword, employee.getPassword());
     }
 
+    /* ==========================
+       HELPER
+       ========================== */
     private void applyDtoToEmployee(Employee employee, EmployeeDTO dto) {
         employee.setFirstName(dto.getFirstName());
         employee.setLastName(dto.getLastName());
         employee.setUsername(dto.getUsername());
         employee.setRole(dto.getRole());
         employee.setContactNumber(dto.getContactNumber());
-    }
-
-    // ---------------- Additional Stats ----------------
-    public long count() {
-        return employeeRepository.count();
-    }
-
-    public long countByRole(String role) {
-        return employeeRepository.countByRole(role);
-    }
-
-    public long countByRoleNot(String role) {
-        return employeeRepository.countByRoleNot(role);
-    }
-
-    // ---------------- Password Migration ----------------
-    @Transactional
-    public void migratePasswordsToBCrypt() {
-        List<Employee> all = employeeRepository.findAll();
-        for (Employee emp : all) {
-            String password = emp.getPassword();
-            if (!password.startsWith("$2a$")) {
-                emp.setPassword(passwordEncoder.encode(password));
-                employeeRepository.save(emp);
-            }
-        }
     }
 }

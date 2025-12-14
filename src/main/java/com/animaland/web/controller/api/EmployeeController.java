@@ -3,14 +3,16 @@ package com.animaland.web.controller.api;
 import com.animaland.web.DTO.EmployeeDTO;
 import com.animaland.web.DTO.EmployeeResponseDTO;
 import com.animaland.web.models.Employee;
-import com.animaland.web.repository.EmployeeRepository;
+import com.animaland.web.service.EmployeeService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @CrossOrigin
@@ -18,19 +20,18 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/employee")
 public class EmployeeController {
 
-    private final EmployeeRepository employeeRepository;
+    private final EmployeeService employeeService;
 
-    public EmployeeController(EmployeeRepository employeeRepository) {
-        this.employeeRepository = employeeRepository;
+    public EmployeeController(EmployeeService employeeService) {
+        this.employeeService = employeeService;
     }
 
     /* ==========================
-       BASIC CRUD
+       GET ALL EMPLOYEES
        ========================== */
-
     @GetMapping
     public ResponseEntity<List<EmployeeResponseDTO>> getAllEmployees() {
-        List<EmployeeResponseDTO> list = employeeRepository.findAll()
+        List<EmployeeResponseDTO> list = employeeService.findAll()
                 .stream()
                 .map(this::toResponseDTO)
                 .collect(Collectors.toList());
@@ -39,27 +40,9 @@ public class EmployeeController {
 
     @GetMapping("/{id}")
     public ResponseEntity<EmployeeResponseDTO> getEmployeeById(@PathVariable Long id) {
-        Employee e = employeeRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee not found"));
+        Employee e = employeeService.findById(id);
+        if (e == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee not found");
         return ResponseEntity.ok(toResponseDTO(e));
-    }
-
-    @PostMapping
-    public ResponseEntity<EmployeeResponseDTO> createEmployee(@Valid @RequestBody EmployeeDTO dto) {
-        if (employeeRepository.existsByUsername(dto.getUsername())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username already exists");
-        }
-
-        Employee e = new Employee();
-        e.setFirstName(dto.getFirstName());
-        e.setLastName(dto.getLastName());
-        e.setUsername(dto.getUsername());
-        e.setPassword(dto.getPassword()); // hash later
-        e.setRole(dto.getRole());
-        e.setContactNumber(dto.getContactNumber());
-
-        Employee saved = employeeRepository.save(e);
-        return new ResponseEntity<>(toResponseDTO(saved), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
@@ -67,75 +50,63 @@ public class EmployeeController {
             @PathVariable Long id,
             @Valid @RequestBody EmployeeDTO dto) {
 
-        Employee existing = employeeRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee not found"));
+        Employee existing = employeeService.findById(id);
+        if (existing == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee not found");
 
-        existing.setFirstName(dto.getFirstName());
-        existing.setLastName(dto.getLastName());
-        existing.setUsername(dto.getUsername());
-        existing.setRole(dto.getRole());
-        existing.setContactNumber(dto.getContactNumber());
-
-        Employee updated = employeeRepository.save(existing);
+        Employee updated = employeeService.updateEmployee(existing, dto);
         return ResponseEntity.ok(toResponseDTO(updated));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteEmployee(@PathVariable Long id) {
-        if (!employeeRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee not found");
-        }
-        employeeRepository.deleteById(id);
+        Employee existing = employeeService.findById(id);
+        if (existing == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee not found");
+
+        employeeService.deleteEmployee(id);
         return ResponseEntity.noContent().build();
     }
 
     /* ==========================
-       ENDPOINTS REQUIRED BY REACT
+       EMPLOYEE STATS
        ========================== */
-
-    // GET /api/employee/stats
     @GetMapping("/stats")
-    public ResponseEntity<Map<String, Long>> getEmployeeStats() {
-        Map<String, Long> stats = new HashMap<>();
-        stats.put("total", employeeRepository.count());
-        stats.put("admins", employeeRepository.countByRole("ADMIN"));
-        stats.put("staff", employeeRepository.countByRoleNot("ADMIN"));
+    public ResponseEntity<Map<String, Integer>> getStats() {
+        List<Employee> all = employeeService.findAll();
+        int total = all.size();
+        int managers = (int) all.stream().filter(e -> "MANAGER".equalsIgnoreCase(e.getRole())).count();
+        int staff = (int) all.stream().filter(e -> "STAFF".equalsIgnoreCase(e.getRole())).count();
+
+        Map<String, Integer> stats = new HashMap<>();
+        stats.put("total", total);
+        stats.put("managers", managers);
+        stats.put("staff", staff);
+
         return ResponseEntity.ok(stats);
     }
 
-    // GET /api/employee/roles
+    /* ==========================
+       EMPLOYEE ROLES
+       ========================== */
     @GetMapping("/roles")
     public ResponseEntity<List<String>> getRoles() {
-        List<String> roles = employeeRepository.findAll()
-                .stream()
-                .map(Employee::getRole)
-                .filter(Objects::nonNull)
-                .distinct()
-                .toList();
-        return ResponseEntity.ok(roles);
+        return ResponseEntity.ok(List.of("Manager", "Staff"));
     }
 
-    // GET /api/employee/contacts
+    /* ==========================
+       EMPLOYEE CONTACTS
+       ========================== */
     @GetMapping("/contacts")
-    public ResponseEntity<List<Map<String, String>>> getContacts() {
-        List<Map<String, String>> contacts = employeeRepository.findAll()
+    public ResponseEntity<List<EmployeeResponseDTO>> getContacts() {
+        List<EmployeeResponseDTO> contacts = employeeService.findAll()
                 .stream()
-                .map(e -> {
-                    Map<String, String> map = new HashMap<>();
-                    map.put("name", e.getFirstName() + " " + e.getLastName());
-                    map.put("contactNumber", e.getContactNumber());
-                    map.put("role", e.getRole());
-                    return map;
-                })
-                .toList();
-
+                .map(this::toResponseDTO)
+                .collect(Collectors.toList());
         return ResponseEntity.ok(contacts);
     }
 
     /* ==========================
        HELPER
        ========================== */
-
     private EmployeeResponseDTO toResponseDTO(Employee e) {
         return new EmployeeResponseDTO(
                 e.getEmployeeId(),
