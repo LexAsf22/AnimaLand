@@ -1,25 +1,44 @@
 package com.animaland.web.DTO.response;
 
 public class TreatmentResponseDTO {
+
     private Long treatmentId;
     private Long appointmentId;
     private String serviceGiven;
     private String findings;
     private String medicinePrescribed;
     private String serviceDate; // keep as String for frontend
+
     private Long petId;
     private String petName;
     private String petSpecies;
+
     private Long ownerId;
     private String ownerFirstName;
     private String ownerLastName;
+
+    private Long staffId;
+    private String staffName;
+
     private Double totalBill;
 
-    public TreatmentResponseDTO(Long treatmentId, Long appointmentId, String serviceGiven,
-                                String findings, String medicinePrescribed, String serviceDate,
-                                Long petId, String petName, String petSpecies,
-                                Long ownerId, String ownerFirstName, String ownerLastName,
-                                Double totalBill) {
+    public TreatmentResponseDTO(
+            Long treatmentId,
+            Long appointmentId,
+            String serviceGiven,
+            String findings,
+            String medicinePrescribed,
+            String serviceDate,
+            Long petId,
+            String petName,
+            String petSpecies,
+            Long ownerId,
+            String ownerFirstName,
+            String ownerLastName,
+            Long staffId,
+            String staffName,
+            Double totalBill
+    ) {
         this.treatmentId = treatmentId;
         this.appointmentId = appointmentId;
         this.serviceGiven = serviceGiven;
@@ -32,10 +51,13 @@ public class TreatmentResponseDTO {
         this.ownerId = ownerId;
         this.ownerFirstName = ownerFirstName;
         this.ownerLastName = ownerLastName;
+        this.staffId = staffId;
+        this.staffName = staffName;
         this.totalBill = totalBill;
     }
 
     // Getters & Setters
+
     public Long getTreatmentId() { return treatmentId; }
     public void setTreatmentId(Long treatmentId) { this.treatmentId = treatmentId; }
 
@@ -71,6 +93,12 @@ public class TreatmentResponseDTO {
 
     public String getOwnerLastName() { return ownerLastName; }
     public void setOwnerLastName(String ownerLastName) { this.ownerLastName = ownerLastName; }
+
+    public Long getStaffId() { return staffId; }
+    public void setStaffId(Long staffId) { this.staffId = staffId; }
+
+    public String getStaffName() { return staffName; }
+    public void setStaffName(String staffName) { this.staffName = staffName; }
 
     public Double getTotalBill() { return totalBill; }
     public void setTotalBill(Double totalBill) { this.totalBill = totalBill; }
