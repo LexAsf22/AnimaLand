@@ -8,9 +8,9 @@ function Sidebar({ status }) {
 
   const menuItems = [
     { text: "Dashboard", path: "/dashboard", icon: "🏠" },
-    { text: "Users", path: "/users", icon: "👤" },
+    { text: "Owners", path: "/owners", icon: "🐾" },
     { text: "Employee", path: "/employee", icon: "💼" },
-    { text: "Pets", path: "/pets", icon: "🐾" },
+    { text: "Pets", path: "/pets", icon: "🐶" },
     { text: "Appointment", path: "/appointment", icon: "📅" },
     { text: "Treatment Records", path: "/treatment-records", icon: "📝" },
   ];
