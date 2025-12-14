@@ -10,50 +10,58 @@ export default function TreatmentRecords() {
   const [modal, setModal] = useState({ type: null, treatment: null, appointmentId: null });
 
   // Fetch appointments and treatments
-  useEffect(() => {
+  const fetchData = async () => {
     if (!token) return;
+    try {
+      setLoading(true);
+      const [apptRes, trRes] = await Promise.all([
+        api.get("/appointments", { headers: { Authorization: `Bearer ${token}` } }),
+        api.get("/treatments", { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
 
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [apptRes, trRes] = await Promise.all([
-          api.get("/appointments"),
-          api.get("/treatments")
-        ]);
+      setAppointments(Array.isArray(apptRes.data) ? apptRes.data : []);
+      setTreatments(Array.isArray(trRes.data) ? trRes.data : []);
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      alert("Failed to load data. Check console for details.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        setAppointments(Array.isArray(apptRes.data) ? apptRes.data : []);
-        setTreatments(Array.isArray(trRes.data) ? trRes.data : []);
-      } catch (err) {
-        console.error("Error fetching data:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
+  useEffect(() => {
     fetchData();
   }, [token]);
 
-  // Add treatment
+  // Add new treatment
   const addTreatment = async (newTreatment) => {
     try {
-      const res = await api.post("/treatments", newTreatment);
-      setTreatments(prev => [...prev, res.data]);
+      const res = await api.post("/treatments", newTreatment, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setTreatments((prev) => [...prev, res.data]);
       setModal({ type: null, treatment: null, appointmentId: null });
+      fetchData();
     } catch (err) {
-      console.error(err);
-      alert("Failed to add treatment.");
+      console.error("Add treatment error:", err);
+      alert(err.response?.data?.message || "Failed to add treatment.");
     }
   };
 
   // Edit treatment
   const editTreatment = async (updatedTreatment) => {
     try {
-      const res = await api.put(`/treatments/${updatedTreatment.treatmentId}`, updatedTreatment);
-      setTreatments(prev => prev.map(t => t.treatmentId === updatedTreatment.treatmentId ? res.data : t));
+      const res = await api.put(`/treatments/${updatedTreatment.treatmentId}`, updatedTreatment, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setTreatments((prev) =>
+        prev.map((t) => (t.treatmentId === updatedTreatment.treatmentId ? res.data : t))
+      );
       setModal({ type: null, treatment: null, appointmentId: null });
+      fetchData();
     } catch (err) {
-      console.error(err);
-      alert("Failed to update treatment.");
+      console.error("Edit treatment error:", err);
+      alert(err.response?.data?.message || "Failed to update treatment.");
     }
   };
 
@@ -61,15 +69,17 @@ export default function TreatmentRecords() {
   const deleteTreatment = async (id) => {
     if (!confirm("Are you sure you want to delete this treatment?")) return;
     try {
-      await api.delete(`/treatments/${id}`);
-      setTreatments(prev => prev.filter(t => t.treatmentId !== id));
+      await api.delete(`/treatments/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+      setTreatments((prev) => prev.filter((t) => t.treatmentId !== id));
+      fetchData();
     } catch (err) {
-      console.error(err);
-      alert("Failed to delete treatment.");
+      console.error("Delete treatment error:", err);
+      alert(err.response?.data?.message || "Failed to delete treatment.");
     }
   };
 
-  if (loading) return <div className="p-8 text-center text-gray-500">Loading treatment records...</div>;
+  if (loading)
+    return <div className="p-8 text-center text-gray-500">Loading treatment records...</div>;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100 p-8">
@@ -77,32 +87,86 @@ export default function TreatmentRecords() {
         <h1 className="text-4xl font-serif text-gray-800 mb-3">Treatment Records Dashboard</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {appointments.map(appt => {
-            const trRecords = treatments.filter(t => t.appointment?.appointmentId === appt.appointmentId);
+          {appointments.map((appt) => {
+            const trRecords = treatments.filter((t) => t.appointmentId === appt.appointmentId);
+
             return (
-              <div key={appt.appointmentId} className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-pink-100">
-                <h2 className="text-2xl font-semibold">{appt.pet?.name} ({appt.pet?.species})</h2>
-                <p>Owner: {appt.pet?.owner?.firstName} {appt.pet?.owner?.lastName}</p>
+              <div
+                key={appt.appointmentId}
+                className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-pink-100"
+              >
+                <h2 className="text-2xl font-semibold">
+                  {appt.petName} ({appt.petSpecies || "-"})
+                </h2>
+                <p>
+                  <strong>Owner:</strong> {appt.ownerName || "-"}
+                </p>
+                <p>
+                  <strong>Doctor:</strong> {appt.staffName || "-"}
+                </p>
+                <p>
+                  <strong>Status:</strong> {appt.status || "-"}
+                </p>
+
                 <div className="flex justify-between items-center mt-2 mb-2">
                   <h3>Treatment Records:</h3>
-                  <button onClick={() => setModal({ type: 'add', appointmentId: appt.appointmentId })} className="bg-pink-500 text-white px-2 py-1 rounded">Add</button>
+                  {appt.status?.toLowerCase() === "completed" ? (
+                    <button
+                      onClick={() => setModal({ type: "add", appointmentId: appt.appointmentId })}
+                      className="bg-pink-500 text-white px-2 py-1 rounded"
+                    >
+                      Add
+                    </button>
+                  ) : (
+                    <button disabled className="bg-gray-300 text-gray-600 px-2 py-1 rounded">
+                      Add
+                    </button>
+                  )}
                 </div>
+
                 {trRecords.length > 0 ? (
                   <ul>
-                    {trRecords.map(t => (
-                      <li key={t.treatmentId} className="mb-2 border-b border-pink-200 pb-2">
-                        <p>Service: {t.serviceGiven}</p>
-                        <p>Findings: {t.findings}</p>
-                        <p>Medicine: {t.medicinePrescribed}</p>
-                        <p>Date: {t.serviceDate}</p>
+                    {trRecords.map((t) => (
+                      <li
+                        key={t.treatmentId}
+                        className="mb-2 border-b border-pink-200 pb-2"
+                      >
+                        <p>
+                          <strong>Service:</strong> {t.serviceGiven}
+                        </p>
+                        <p>
+                          <strong>Findings:</strong> {t.findings}
+                        </p>
+                        <p>
+                          <strong>Medicine:</strong> {t.medicinePrescribed || "-"}
+                        </p>
+                        <p>
+                          <strong>Date:</strong> {t.serviceDate}
+                        </p>
+                        <p>
+                          <strong>Total Bill:</strong>{" "}
+                          {t.totalBill ? `₱${t.totalBill.toFixed(2)}` : "-"}
+                        </p>
                         <div className="flex gap-2 mt-1">
-                          <button onClick={() => setModal({ type: 'edit', treatment: t })} className="bg-yellow-400 px-2 py-1 rounded">Edit</button>
-                          <button onClick={() => deleteTreatment(t.treatmentId)} className="bg-red-500 text-white px-2 py-1 rounded">Delete</button>
+                          <button
+                            onClick={() => setModal({ type: "edit", treatment: t })}
+                            className="bg-yellow-400 px-2 py-1 rounded"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => deleteTreatment(t.treatmentId)}
+                            className="bg-red-500 text-white px-2 py-1 rounded"
+                          >
+                            Delete
+                          </button>
                         </div>
                       </li>
                     ))}
                   </ul>
-                ) : <p>No records</p>}
+                ) : (
+                  <p>No records</p>
+                )}
               </div>
             );
           })}
@@ -110,11 +174,11 @@ export default function TreatmentRecords() {
       </div>
 
       {modal.type && (
-        <TreatmentModal 
-          modal={modal} 
+        <TreatmentModal
+          modal={modal}
           close={() => setModal({ type: null, treatment: null, appointmentId: null })}
-          addTreatment={addTreatment} 
-          editTreatment={editTreatment} 
+          addTreatment={addTreatment}
+          editTreatment={editTreatment}
         />
       )}
     </div>
@@ -122,44 +186,98 @@ export default function TreatmentRecords() {
 }
 
 function TreatmentModal({ modal, close, addTreatment, editTreatment }) {
-  const isEdit = modal.type === 'edit';
+  const isEdit = modal.type === "edit";
   const [form, setForm] = useState({
-    appointmentId: modal.appointmentId || modal.treatment?.appointment?.appointmentId || '',
-    serviceGiven: modal.treatment?.serviceGiven || '',
-    findings: modal.treatment?.findings || '',
-    medicinePrescribed: modal.treatment?.medicinePrescribed || '',
-    serviceDate: modal.treatment?.serviceDate || '',
+    appointmentId: modal.appointmentId || modal.treatment?.appointmentId || "",
+    serviceGiven: modal.treatment?.serviceGiven || "",
+    findings: modal.treatment?.findings || "",
+    medicinePrescribed: modal.treatment?.medicinePrescribed || "",
+    serviceDate: modal.treatment?.serviceDate || new Date().toISOString().split("T")[0],
+    totalBill: modal.treatment?.totalBill || "",
   });
 
   useEffect(() => {
     setForm({
-      appointmentId: modal.appointmentId || modal.treatment?.appointment?.appointmentId || '',
-      serviceGiven: modal.treatment?.serviceGiven || '',
-      findings: modal.treatment?.findings || '',
-      medicinePrescribed: modal.treatment?.medicinePrescribed || '',
-      serviceDate: modal.treatment?.serviceDate || '',
+      appointmentId: modal.appointmentId || modal.treatment?.appointmentId || "",
+      serviceGiven: modal.treatment?.serviceGiven || "",
+      findings: modal.treatment?.findings || "",
+      medicinePrescribed: modal.treatment?.medicinePrescribed || "",
+      serviceDate: modal.treatment?.serviceDate || new Date().toISOString().split("T")[0],
+      totalBill: modal.treatment?.totalBill || "",
     });
   }, [modal]);
 
-  const handleChange = e => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  const handleSubmit = e => { 
-    e.preventDefault(); 
-    isEdit ? editTreatment({ ...form, treatmentId: modal.treatment.treatmentId }) : addTreatment(form); 
+  const handleChange = (e) =>
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    isEdit
+      ? editTreatment({ ...form, treatmentId: modal.treatment.treatmentId })
+      : addTreatment(form);
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-xl w-96">
-        <h2 className="text-xl font-semibold mb-4">{isEdit ? 'Edit' : 'Add'} Treatment</h2>
+        <h2 className="text-xl font-semibold mb-4">
+          {isEdit ? "Edit" : "Add"} Treatment
+        </h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-2">
           <input type="hidden" name="appointmentId" value={form.appointmentId} />
-          <input name="serviceGiven" placeholder="Service Given" value={form.serviceGiven} onChange={handleChange} required className="p-2 border rounded"/>
-          <input name="findings" placeholder="Findings" value={form.findings} onChange={handleChange} required className="p-2 border rounded"/>
-          <input name="medicinePrescribed" placeholder="Medicine" value={form.medicinePrescribed} onChange={handleChange} className="p-2 border rounded"/>
-          <input type="date" name="serviceDate" value={form.serviceDate} onChange={handleChange} required className="p-2 border rounded"/>
+          <input
+            name="serviceGiven"
+            placeholder="Service Given"
+            value={form.serviceGiven}
+            onChange={handleChange}
+            required
+            className="p-2 border rounded"
+          />
+          <input
+            name="findings"
+            placeholder="Findings"
+            value={form.findings}
+            onChange={handleChange}
+            required
+            className="p-2 border rounded"
+          />
+          <input
+            name="medicinePrescribed"
+            placeholder="Medicine"
+            value={form.medicinePrescribed}
+            onChange={handleChange}
+            className="p-2 border rounded"
+          />
+          <input
+            type="date"
+            name="serviceDate"
+            value={form.serviceDate}
+            onChange={handleChange}
+            required
+            className="p-2 border rounded"
+          />
+          <input
+            type="number"
+            name="totalBill"
+            placeholder="Total Bill"
+            value={form.totalBill}
+            onChange={handleChange}
+            className="p-2 border rounded"
+          />
           <div className="flex justify-end gap-2 mt-2">
-            <button type="button" onClick={close} className="px-4 py-2 border rounded">Cancel</button>
-            <button type="submit" className="px-4 py-2 bg-pink-400 text-white rounded">{isEdit ? 'Save' : 'Add'}</button>
+            <button
+              type="button"
+              onClick={close}
+              className="px-4 py-2 border rounded"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-pink-400 text-white rounded"
+            >
+              {isEdit ? "Save" : "Add"}
+            </button>
           </div>
         </form>
       </div>
