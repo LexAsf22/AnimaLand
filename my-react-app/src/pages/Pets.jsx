@@ -16,6 +16,7 @@ export default function Pets() {
   const emptyForm = { name: "", species: "", breed: "", age: "", gender: "", ownerId: "" };
   const [form, setForm] = useState(emptyForm);
 
+  // Fetch pets and owners
   useEffect(() => {
     if (!token) return setLoading(false);
 
@@ -30,10 +31,15 @@ export default function Pets() {
         const petsArray = Array.isArray(petsRes.data) ? petsRes.data : [];
         const ownersArray = Array.isArray(ownersRes.data) ? ownersRes.data : [];
 
-        const normalizedPets = petsArray.map((p) => ({
-          ...p,
-          appointmentCount: Array.isArray(p.appointments) ? p.appointments.length : 0,
-        }));
+        // Map owner object into each pet
+        const normalizedPets = petsArray.map((p) => {
+          const owner = ownersArray.find((o) => o.ownerId === p.ownerId) || null;
+          return {
+            ...p,
+            owner,
+            appointmentCount: Array.isArray(p.appointments) ? p.appointments.length : 0,
+          };
+        });
 
         setPets(normalizedPets);
         setOwners(ownersArray);
@@ -95,16 +101,18 @@ export default function Pets() {
     try {
       if (editingPet) {
         const res = await api.put(`/pets/${editingPet.petId}`, payload, { headers: { Authorization: `Bearer ${token}` } });
+        const ownerObj = owners.find((o) => o.ownerId === res.data.ownerId) || null;
         setPets((prev) =>
           prev.map((p) =>
             p.petId === res.data.petId
-              ? { ...res.data, appointmentCount: p.appointmentCount ?? 0 }
+              ? { ...res.data, owner: ownerObj, appointmentCount: p.appointmentCount ?? 0 }
               : p
           )
         );
       } else {
         const res = await api.post("/pets", payload, { headers: { Authorization: `Bearer ${token}` } });
-        setPets((prev) => [...prev, { ...res.data, appointmentCount: 0 }]);
+        const ownerObj = owners.find((o) => o.ownerId === res.data.ownerId) || null;
+        setPets((prev) => [...prev, { ...res.data, owner: ownerObj, appointmentCount: 0 }]);
       }
       closeModal();
     } catch (err) {
@@ -213,27 +221,15 @@ export default function Pets() {
                           </div>
                         </div>
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap">{pet.species}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{pet.breed}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{pet.age} {pet.age === 1 ? 'year' : 'years'}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-700">{pet.species}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-700">{pet.breed}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-700">{pet.age} {pet.age === 1 ? 'year' : 'years'}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          pet.gender === 'Male' ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800'
-                        }`}>
+                        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${pet.gender === 'Male' ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800'}`}>
                           {pet.gender}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-700">
-                          {pet.owner ? `${pet.owner.firstName} ${pet.owner.lastName}` : 'N/A'}
-                        </div>
-                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">{pet.owner ? `${pet.owner.firstName} ${pet.owner.lastName}` : 'N/A'}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
                           {pet.appointmentCount}
@@ -241,16 +237,10 @@ export default function Pets() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex gap-2">
-                          <button 
-                            onClick={() => openEdit(pet)} 
-                            className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors duration-150 font-medium"
-                          >
+                          <button onClick={() => openEdit(pet)} className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors duration-150 font-medium">
                             Edit
                           </button>
-                          <button 
-                            onClick={() => handleDelete(pet.petId)} 
-                            className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors duration-150 font-medium"
-                          >
+                          <button onClick={() => handleDelete(pet.petId)} className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors duration-150 font-medium">
                             Delete
                           </button>
                         </div>
@@ -277,134 +267,64 @@ export default function Pets() {
           </div>
         </div>
 
-        {/* Modal */}
+        {/* Modal Section */}
         {showModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
-              {/* Modal Header */}
-              <div className="bg-gradient-to-r from-pink-500 to-rose-500 px-6 py-5 rounded-t-2xl">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-white">
-                    {editingPet ? "Edit Pet" : "Add New Pet"}
-                  </h2>
-                  <button 
-                    onClick={closeModal}
-                    className="text-white hover:bg-white/20 rounded-full p-2 transition-colors duration-200"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
+              <div className="bg-gradient-to-r from-pink-500 to-rose-500 px-6 py-5 rounded-t-2xl flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-white">{editingPet ? "Edit Pet" : "Add New Pet"}</h2>
+                <button onClick={closeModal} className="text-white hover:bg-white/20 rounded-full p-2 transition-colors duration-200">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
 
-              {/* Modal Body */}
-              <div className="p-6">
-                <div className="space-y-4">
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Pet Name <span className="text-pink-500">*</span></label>
+                  <input type="text" placeholder="Enter pet name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 transition-all duration-200" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Pet Name <span className="text-pink-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Enter pet name"
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 transition-all duration-200"
-                    />
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Species <span className="text-pink-500">*</span></label>
+                    <input type="text" placeholder="e.g., Dog, Cat" value={form.species} onChange={(e) => setForm({ ...form, species: e.target.value })} className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 transition-all duration-200" />
                   </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Species <span className="text-pink-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g., Dog, Cat"
-                        value={form.species}
-                        onChange={(e) => setForm({ ...form, species: e.target.value })}
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 transition-all duration-200"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Breed <span className="text-pink-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Enter breed"
-                        value={form.breed}
-                        onChange={(e) => setForm({ ...form, breed: e.target.value })}
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 transition-all duration-200"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Age <span className="text-pink-500">*</span>
-                      </label>
-                      <input
-                        type="number"
-                        placeholder="Age in years"
-                        value={form.age}
-                        onChange={(e) => setForm({ ...form, age: e.target.value })}
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 transition-all duration-200"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Gender <span className="text-pink-500">*</span>
-                      </label>
-                      <select
-                        value={form.gender}
-                        onChange={(e) => setForm({ ...form, gender: e.target.value })}
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 transition-all duration-200"
-                      >
-                        <option value="">Select Gender</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                      </select>
-                    </div>
-                  </div>
-
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Owner <span className="text-pink-500">*</span>
-                    </label>
-                    <select
-                      value={form.ownerId}
-                      onChange={(e) => setForm({ ...form, ownerId: e.target.value })}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 transition-all duration-200"
-                    >
-                      <option value="">Select Owner</option>
-                      {owners.map((o) => (
-                        <option key={o.ownerId} value={o.ownerId}>
-                          {o.firstName} {o.lastName}
-                        </option>
-                      ))}
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Breed <span className="text-pink-500">*</span></label>
+                    <input type="text" placeholder="Enter breed" value={form.breed} onChange={(e) => setForm({ ...form, breed: e.target.value })} className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 transition-all duration-200" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Age <span className="text-pink-500">*</span></label>
+                    <input type="number" placeholder="Age in years" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 transition-all duration-200" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Gender <span className="text-pink-500">*</span></label>
+                    <select value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })} className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 transition-all duration-200">
+                      <option value="">Select Gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
                     </select>
                   </div>
                 </div>
 
-                {/* Modal Footer */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Owner <span className="text-pink-500">*</span></label>
+                  <select value={form.ownerId} onChange={(e) => setForm({ ...form, ownerId: e.target.value })} className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 transition-all duration-200">
+                    <option value="">Select Owner</option>
+                    {owners.map((o) => (
+                      <option key={o.ownerId} value={o.ownerId}>{o.firstName} {o.lastName}</option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
-                  <button 
-                    type="button"
-                    onClick={closeModal}
-                    className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-colors duration-200"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    onClick={handleSubmit}
-                    disabled={saving}
-                    className="px-6 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
+                  <button type="button" onClick={closeModal} className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-colors duration-200">Cancel</button>
+                  <button onClick={handleSubmit} disabled={saving} className="px-6 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
                     {saving ? "Saving..." : editingPet ? "Save Changes" : "Add Pet"}
                   </button>
                 </div>
