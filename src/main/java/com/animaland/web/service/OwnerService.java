@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class OwnerService {
@@ -21,16 +20,13 @@ public class OwnerService {
         this.ownerRepository = ownerRepository;
     }
 
-    public List<Owner> findAll() {
-        return ownerRepository.findAll();
-    }
-
     public Owner findById(Long id) {
         return ownerRepository.findById(id).orElse(null);
     }
 
     @Transactional
     public Owner save(OwnerDTO dto) {
+
         String email = dto.email().toLowerCase();
 
         if (ownerRepository.existsByEmailIgnoreCase(email)) {
@@ -49,13 +45,14 @@ public class OwnerService {
 
     @Transactional
     public Owner updateOwner(Long id, OwnerDTO dto) {
+
         Owner existing = findById(id);
         if (existing == null) return null;
 
         String email = dto.email().toLowerCase();
 
-        if (!existing.getEmail().equalsIgnoreCase(email) &&
-                ownerRepository.existsByEmailIgnoreCase(email)) {
+        if (!existing.getEmail().equalsIgnoreCase(email)
+                && ownerRepository.existsByEmailIgnoreCase(email)) {
             throw new DataIntegrityViolationException("Owner with this email already exists");
         }
 
@@ -72,12 +69,13 @@ public class OwnerService {
         ownerRepository.deleteById(id);
     }
 
-    public Owner findByEmail(String email) {
-        return ownerRepository.findByEmailIgnoreCase(email).orElse(null);
+    @Transactional(readOnly = true)
+    public List<OwnerResponseDTO> findAllDTO() {
+        return ownerRepository.findAll().stream().map(this::toResponseDTO).toList();
     }
 
-    // ---------------- DTO Conversion ----------------
     public OwnerResponseDTO toResponseDTO(Owner owner) {
+
         OwnerResponseDTO dto = new OwnerResponseDTO();
         dto.setOwnerId(owner.getOwnerId());
         dto.setFirstName(owner.getFirstName());
@@ -89,23 +87,17 @@ public class OwnerService {
         dto.setPets(
                 owner.getPets() == null ? List.of() :
                         owner.getPets().stream().map(pet -> {
-                            PetResponseDTO petDto = new PetResponseDTO();
-                            petDto.setPetId(pet.getPetId());
-                            petDto.setName(pet.getName());
-                            petDto.setSpecies(pet.getSpecies());
-                            petDto.setBreed(pet.getBreed());
-                            petDto.setAge(pet.getAge());
-                            petDto.setGender(pet.getGender());
-                            return petDto;
-                        }).collect(Collectors.toList())
+                            PetResponseDTO p = new PetResponseDTO();
+                            p.setPetId(pet.getPetId());
+                            p.setName(pet.getName());
+                            p.setSpecies(pet.getSpecies());
+                            p.setBreed(pet.getBreed());
+                            p.setAge(pet.getAge());
+                            p.setGender(pet.getGender());
+                            return p;
+                        }).toList()
         );
 
         return dto;
-    }
-
-    public List<OwnerResponseDTO> findAllDTO() {
-        return ownerRepository.findAll().stream()
-                .map(this::toResponseDTO)
-                .toList();
     }
 }

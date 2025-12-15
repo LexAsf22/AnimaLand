@@ -5,10 +5,10 @@ public class TreatmentRecordDTO {
     private String serviceGiven;
     private String findings;
     private String medicinePrescribed;
-    private String serviceDate; // frontend sends string like "2025-12-14"
-    private Double totalBill;
+    private String serviceDate; // format "yyyy-MM-dd"
+    private Double totalBill;   // must always be Double
 
-    // Getters & Setters
+    // Getters and setters
     public Long getAppointmentId() { return appointmentId; }
     public void setAppointmentId(Long appointmentId) { this.appointmentId = appointmentId; }
 

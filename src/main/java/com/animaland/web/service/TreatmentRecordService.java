@@ -1,77 +1,77 @@
 package com.animaland.web.service;
 
 import com.animaland.web.DTO.TreatmentRecordDTO;
+import com.animaland.web.DTO.response.TreatmentResponseDTO;
 import com.animaland.web.models.Appointment;
 import com.animaland.web.models.TreatmentRecord;
-import com.animaland.web.repository.AppointmentRepository;
 import com.animaland.web.repository.TreatmentRecordRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
 
 @Service
-@Transactional
 public class TreatmentRecordService {
 
-    private final TreatmentRecordRepository treatmentRecordRepository;
-    private final AppointmentRepository appointmentRepository;
+    private final TreatmentRecordRepository repository;
+    private final AppointmentService appointmentService;
 
-    public TreatmentRecordService(TreatmentRecordRepository treatmentRecordRepository,
-                                  AppointmentRepository appointmentRepository) {
-        this.treatmentRecordRepository = treatmentRecordRepository;
-        this.appointmentRepository = appointmentRepository;
+    public TreatmentRecordService(TreatmentRecordRepository repository, AppointmentService appointmentService) {
+        this.repository = repository;
+        this.appointmentService = appointmentService;
     }
 
     public List<TreatmentRecord> findAll() {
-        return treatmentRecordRepository.findAll();
-    }
-
-    public TreatmentRecord save(TreatmentRecordDTO dto) {
-        Appointment appointment = appointmentRepository.findById(dto.getAppointmentId())
-                .orElseThrow(() -> new RuntimeException("Appointment not found"));
-
-        // Ensure appointment is completed
-        if (!"COMPLETED".equalsIgnoreCase(appointment.getStatus())) {
-            throw new RuntimeException("Appointment must be completed before adding a treatment record");
-        }
-
-        TreatmentRecord tr = new TreatmentRecord();
-        tr.setAppointment(appointment);
-        tr.setServiceGiven(dto.getServiceGiven());
-        tr.setFindings(dto.getFindings());
-        tr.setMedicinePrescribed(dto.getMedicinePrescribed());
-        tr.setServiceDate(dto.getServiceDate() != null && !dto.getServiceDate().isEmpty() ?
-                LocalDate.parse(dto.getServiceDate()) : LocalDate.now());
-        tr.setTotalBill(dto.getTotalBill() != null ? dto.getTotalBill() : 0.0);
-
-        return treatmentRecordRepository.save(tr);
+        return repository.findAll();
     }
 
     public TreatmentRecord findById(Long id) {
-        return treatmentRecordRepository.findById(id).orElse(null);
+        return repository.findById(id).orElse(null);
+    }
+
+    public TreatmentRecord save(TreatmentRecordDTO dto) {
+        Appointment appt = appointmentService.findById(dto.getAppointmentId());
+        if (appt == null) throw new RuntimeException("Appointment not found");
+
+        TreatmentRecord tr = new TreatmentRecord();
+        tr.setAppointment(appt);
+        tr.setServiceGiven(dto.getServiceGiven());
+        tr.setMedicinePrescribed(dto.getMedicinePrescribed());
+        tr.setTotalBill(dto.getTotalBill());
+        tr.setServiceDate(dto.getServiceDate() != null ? LocalDate.parse(dto.getServiceDate()) : null);
+
+        return repository.save(tr);
     }
 
     public TreatmentRecord updateTreatment(TreatmentRecord existing, TreatmentRecordDTO dto) {
-        if (dto.getAppointmentId() != null) {
-            Appointment appointment = appointmentRepository.findById(dto.getAppointmentId())
-                    .orElseThrow(() -> new RuntimeException("Appointment not found"));
-            existing.setAppointment(appointment);
-        }
-
         existing.setServiceGiven(dto.getServiceGiven());
-        existing.setFindings(dto.getFindings());
         existing.setMedicinePrescribed(dto.getMedicinePrescribed());
-        if (dto.getServiceDate() != null && !dto.getServiceDate().isEmpty()) {
-            existing.setServiceDate(LocalDate.parse(dto.getServiceDate()));
-        }
-        existing.setTotalBill(dto.getTotalBill() != null ? dto.getTotalBill() : 0.0);
+        existing.setTotalBill(dto.getTotalBill());
+        existing.setServiceDate(dto.getServiceDate() != null ? LocalDate.parse(dto.getServiceDate()) : null);
 
-        return treatmentRecordRepository.save(existing);
+        return repository.save(existing);
     }
 
     public void deleteTreatment(Long id) {
-        treatmentRecordRepository.deleteById(id);
+        repository.deleteById(id);
     }
+
+    public TreatmentResponseDTO mapToResponseDTO(TreatmentRecord tr) {
+        var appt = tr.getAppointment();
+        var pet = appt.getPet();
+        var owner = pet.getOwner();
+        var staff = appt.getStaff();
+
+        return new TreatmentResponseDTO(
+                tr.getTreatmentId(),
+                pet.getName(),
+                tr.getServiceGiven(),
+                staff != null ? staff.getFirstName() + " " + staff.getLastName() : null,
+                owner != null ? owner.getFirstName() + " " + owner.getLastName() : null,
+                tr.getServiceDate() != null ? tr.getServiceDate().toString() : null,
+                tr.getMedicinePrescribed(),
+                tr.getTotalBill()
+        );
+    }
+
 }

@@ -24,25 +24,23 @@ public class OwnerController {
         this.ownerService = ownerService;
     }
 
-    // ---------------- GET ALL OWNERS (with pets) ----------------
     @GetMapping
     public ResponseEntity<List<OwnerResponseDTO>> getAllOwners() {
         return ResponseEntity.ok(ownerService.findAllDTO());
     }
 
-    // ---------------- CREATE OWNER ----------------
     @PostMapping
     public ResponseEntity<?> createOwner(@Valid @RequestBody OwnerDTO ownerDTO) {
         try {
             Owner created = ownerService.save(ownerDTO);
-            return ResponseEntity.status(HttpStatus.CREATED).body(ownerService.toResponseDTO(created));
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ownerService.toResponseDTO(created));
         } catch (DataIntegrityViolationException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("{\"error\":\"" + e.getMessage() + "\"}");
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(e.getMessage()); // ✅ STRING
         }
     }
 
-    // ---------------- UPDATE OWNER ----------------
     @PutMapping("/{id}")
     public ResponseEntity<?> updateOwner(@PathVariable Long id, @Valid @RequestBody OwnerDTO ownerDTO) {
         try {
@@ -52,16 +50,17 @@ public class OwnerController {
             }
             return ResponseEntity.ok(ownerService.toResponseDTO(updated));
         } catch (DataIntegrityViolationException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("{\"error\":\"" + e.getMessage() + "\"}");
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(e.getMessage()); // ✅ STRING
         }
     }
 
-    // ---------------- DELETE OWNER ----------------
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteOwner(@PathVariable Long id) {
         Owner existing = ownerService.findById(id);
-        if (existing == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Owner not found");
+        if (existing == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Owner not found");
+        }
         ownerService.deleteOwner(id);
         return ResponseEntity.noContent().build();
     }
