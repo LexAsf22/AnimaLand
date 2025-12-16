@@ -1,6 +1,38 @@
 import React, { useEffect, useState } from "react";
-import api from "../api/api";
-import { useAuth } from "../context/AuthContext";
+
+// Mock API for demonstration
+const api = {
+  get: async (url) => {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    if (url === "/appointments") return { data: [] };
+    if (url === "/pets") return { data: [
+      { petId: 1, name: "Max", species: "Dog", ownerId: 1, ownerName: "John Doe" },
+      { petId: 2, name: "Luna", species: "Cat", ownerId: 2, ownerName: "Jane Smith" }
+    ]};
+    if (url === "/services") return { data: [
+      { serviceId: 1, serviceName: "General Consultation", category: "Consultation", duration: 30, price: 500 },
+      { serviceId: 2, serviceName: "Vaccination", category: "Preventive Care", duration: 20, price: 800 },
+      { serviceId: 3, serviceName: "Deworming", category: "Preventive Care", duration: 20, price: 600 },
+      { serviceId: 4, serviceName: "Anti-Rabies Vaccine", category: "Preventive Care", duration: 20, price: 700 },
+      { serviceId: 5, serviceName: "Grooming", category: "Grooming", duration: 60, price: 1200 },
+      { serviceId: 6, serviceName: "Nail Trimming", category: "Grooming", duration: 15, price: 300 },
+      { serviceId: 7, serviceName: "Dental Cleaning", category: "Dental", duration: 60, price: 2500 },
+      { serviceId: 8, serviceName: "Laboratory Test", category: "Diagnostics", duration: 45, price: 1500 },
+      { serviceId: 9, serviceName: "X-Ray", category: "Diagnostics", duration: 30, price: 3000 },
+      { serviceId: 10, serviceName: "Ultrasound", category: "Diagnostics", duration: 45, price: 3500 },
+    ]};
+    if (url === "/employee") return { data: [
+      { employeeId: 1, firstName: "Dr. Sarah", lastName: "Johnson" },
+      { employeeId: 2, firstName: "Dr. Mike", lastName: "Williams" }
+    ]};
+    return { data: [] };
+  },
+  post: async () => { await new Promise(resolve => setTimeout(resolve, 500)); return { data: {} }; },
+  put: async () => { await new Promise(resolve => setTimeout(resolve, 500)); return { data: {} }; },
+  delete: async () => { await new Promise(resolve => setTimeout(resolve, 500)); return { data: {} }; }
+};
+
+const useAuth = () => ({ token: "demo-token" });
 
 export default function AppointmentPage() {
   const { token } = useAuth();
@@ -14,7 +46,7 @@ export default function AppointmentPage() {
   const [editingAppt, setEditingAppt] = useState(null);
 
   const [selectedPetId, setSelectedPetId] = useState("");
-  const [selectedServiceId, setSelectedServiceId] = useState("");
+  const [selectedServiceIds, setSelectedServiceIds] = useState([]);
   const [selectedStaffId, setSelectedStaffId] = useState("");
   const [appointmentDatetime, setAppointmentDatetime] = useState("");
   const [remarks, setRemarks] = useState("");
@@ -76,6 +108,21 @@ export default function AppointmentPage() {
   const selectedPet = pets.find((p) => String(p.petId) === String(selectedPetId));
   const petHasOwner = Boolean(selectedPet?.ownerId);
 
+  // Calculate totals for selected services
+  const selectedServices = services.filter(s => selectedServiceIds.includes(s.serviceId));
+  const totalPrice = selectedServices.reduce((sum, s) => sum + (s.price || 0), 0);
+  const totalDuration = selectedServices.reduce((sum, s) => sum + (s.duration || 0), 0);
+
+  const handleServiceToggle = (serviceId) => {
+    setSelectedServiceIds(prev => {
+      if (prev.includes(serviceId)) {
+        return prev.filter(id => id !== serviceId);
+      } else {
+        return [...prev, serviceId];
+      }
+    });
+  };
+
   function normalizeDatetimeForBackend(value) {
     if (!value) return null;
     if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return `${value}:00`;
@@ -84,17 +131,19 @@ export default function AppointmentPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedPetId || !selectedServiceId || !selectedStaffId || !appointmentDatetime)
-      return alert("Please fill all required fields.");
+    if (!selectedPetId || selectedServiceIds.length === 0 || !selectedStaffId || !appointmentDatetime)
+      return alert("Please fill all required fields and select at least one service.");
     if (!petHasOwner) return alert("Selected pet has no owner.");
 
     const payload = {
       petId: Number(selectedPetId),
-      serviceId: Number(selectedServiceId),
+      serviceIds: selectedServiceIds.map(id => Number(id)),
       staffId: Number(selectedStaffId),
       appointmentDatetime: normalizeDatetimeForBackend(appointmentDatetime),
       remarks: remarks || "-",
       status,
+      totalPrice,
+      totalDuration,
     };
 
     try {
@@ -119,7 +168,7 @@ export default function AppointmentPage() {
       setShowForm(false);
       setEditingAppt(null);
       setSelectedPetId("");
-      setSelectedServiceId("");
+      setSelectedServiceIds([]);
       setSelectedStaffId("");
       setAppointmentDatetime("");
       setRemarks("");
@@ -211,7 +260,6 @@ export default function AppointmentPage() {
   return (
     <div className="min-h-screen p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100">
       <div className="max-w-7xl mx-auto">
-        {/* Header Section */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-t-4 border-pink-400">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
@@ -222,6 +270,7 @@ export default function AppointmentPage() {
               onClick={() => {
                 setShowForm((s) => !s);
                 setEditingAppt(null);
+                setSelectedServiceIds([]);
               }}
               className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap"
             >
@@ -230,7 +279,6 @@ export default function AppointmentPage() {
           </div>
         </div>
 
-        {/* Add/Edit Form */}
         {showForm && (
           <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-l-4 border-pink-400">
             <h2 className="text-2xl font-bold text-gray-800 mb-6">
@@ -259,25 +307,6 @@ export default function AppointmentPage() {
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Service <span className="text-pink-500">*</span>
-                  </label>
-                  <select
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 transition-all duration-200"
-                    value={selectedServiceId}
-                    onChange={(e) => setSelectedServiceId(e.target.value)}
-                    required
-                  >
-                    <option value="">-- Select Service --</option>
-                    {services.map((s) => (
-                      <option key={s.serviceId} value={s.serviceId}>
-                        {s.serviceName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Staff Member <span className="text-pink-500">*</span>
                   </label>
                   <select
@@ -294,7 +323,73 @@ export default function AppointmentPage() {
                     ))}
                   </select>
                 </div>
+              </div>
 
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Services <span className="text-pink-500">*</span>
+                  <span className="text-gray-500 font-normal text-xs ml-2">
+                    (Select at least one)
+                  </span>
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 border-2 border-gray-200 rounded-xl bg-gray-50">
+                  {services.map((service) => (
+                    <label
+                      key={service.serviceId}
+                      className="flex items-start space-x-3 p-3 bg-white rounded-lg border border-gray-200 hover:border-pink-300 hover:bg-pink-50 cursor-pointer transition-all duration-200"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedServiceIds.includes(service.serviceId)}
+                        onChange={() => handleServiceToggle(service.serviceId)}
+                        className="w-5 h-5 text-pink-500 border-gray-300 rounded focus:ring-pink-400 focus:ring-2 cursor-pointer mt-0.5"
+                      />
+                      <div className="flex-1">
+                        <span className="text-sm font-medium text-gray-700 block">
+                          {service.serviceName}
+                        </span>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="text-xs text-gray-500">
+                            {service.duration} mins
+                          </span>
+                          <span className="text-xs font-semibold text-pink-600">
+                            ₱{service.price.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                
+                {selectedServiceIds.length > 0 && (
+                  <div className="mt-4 p-4 bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl border-2 border-pink-200">
+                    <h3 className="text-sm font-bold text-gray-800 mb-3">Service Summary</h3>
+                    <div className="space-y-2">
+                      {selectedServices.map(service => (
+                        <div key={service.serviceId} className="flex justify-between items-center text-sm">
+                          <span className="text-gray-700">{service.serviceName}</span>
+                          <div className="flex items-center gap-4">
+                            <span className="text-gray-500">{service.duration} mins</span>
+                            <span className="font-semibold text-gray-800">₱{service.price.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      ))}
+                      <div className="pt-3 mt-3 border-t-2 border-pink-200">
+                        <div className="flex justify-between items-center font-bold text-gray-800">
+                          <span>Total Duration:</span>
+                          <span className="text-pink-600">{totalDuration} minutes</span>
+                        </div>
+                        <div className="flex justify-between items-center font-bold text-gray-800 mt-2">
+                          <span>Total Price:</span>
+                          <span className="text-pink-600 text-lg">₱{totalPrice.toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Date & Time <span className="text-pink-500">*</span>
@@ -307,20 +402,20 @@ export default function AppointmentPage() {
                     required
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
-                <select
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 transition-all duration-200"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  required
-                >
-                  <option value="Scheduled">Scheduled</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Cancelled">Cancelled</option>
-                </select>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+                  <select
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 transition-all duration-200"
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                    required
+                  >
+                    <option value="Scheduled">Scheduled</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Cancelled">Cancelled</option>
+                  </select>
+                </div>
               </div>
 
               <div>
@@ -340,6 +435,7 @@ export default function AppointmentPage() {
                   onClick={() => {
                     setShowForm(false);
                     setEditingAppt(null);
+                    setSelectedServiceIds([]);
                   }}
                   className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-colors duration-200"
                 >
@@ -357,7 +453,6 @@ export default function AppointmentPage() {
           </div>
         )}
 
-        {/* Complete Appointment Modal */}
         {showCompleteForm && currentCompleteAppt && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
@@ -449,7 +544,6 @@ export default function AppointmentPage() {
           </div>
         )}
 
-        {/* Appointments Table */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -527,7 +621,7 @@ export default function AppointmentPage() {
                                 setEditingAppt(appt);
                                 setShowForm(true);
                                 setSelectedPetId(appt.petId);
-                                setSelectedServiceId(appt.serviceId);
+                                setSelectedServiceIds([appt.serviceId]);
                                 setSelectedStaffId(appt.staffId);
                                 setAppointmentDatetime(appt.appointmentDatetime.slice(0, 16));
                                 setRemarks(appt.remarks);
@@ -565,3 +659,6 @@ export default function AppointmentPage() {
     </div>
   );
 }
+
+
+

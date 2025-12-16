@@ -4,22 +4,22 @@ import { useAuth } from "../context/AuthContext";
 
 export default function TreatmentRecords() {
   const { token } = useAuth();
-  const [appointments, setAppointments] = useState([]);
+  const [pets, setPets] = useState([]);
   const [treatments, setTreatments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState({ type: null, treatment: null, appointmentId: null });
-  const [expandedAppt, setExpandedAppt] = useState(null);
+  const [modal, setModal] = useState({ type: null, treatment: null, petId: null });
+  const [expandedPet, setExpandedPet] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
 
   const fetchData = async () => {
     if (!token) return;
     try {
       setLoading(true);
-      const [apptRes, trRes] = await Promise.all([
-        api.get("/appointments"),
+      const [petsRes, trRes] = await Promise.all([
+        api.get("/pets"),
         api.get("/treatment-records"),
       ]);
-      setAppointments(apptRes.data || []);
+      setPets(petsRes.data || []);
       setTreatments(trRes.data || []);
     } catch (e) {
       console.error(e);
@@ -55,8 +55,8 @@ export default function TreatmentRecords() {
     fetchData();
   };
 
-  const toggleExpand = (apptId) => {
-    setExpandedAppt(expandedAppt === apptId ? null : apptId);
+  const toggleExpand = (petId) => {
+    setExpandedPet(expandedPet === petId ? null : petId);
   };
 
   if (loading) {
@@ -70,6 +70,21 @@ export default function TreatmentRecords() {
     );
   }
 
+  // Group pets with their treatments
+  const petsWithTreatments = pets.map(pet => {
+    const petTreatments = treatments.filter(t => t.petId === pet.petId);
+    return {
+      ...pet,
+      treatmentCount: petTreatments.length,
+      treatments: petTreatments
+    };
+  });
+
+  // Filter by search query
+  const filteredPets = petsWithTreatments.filter(pet => 
+    pet.name && pet.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="min-h-screen p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100">
       <div className="max-w-7xl mx-auto">
@@ -78,7 +93,7 @@ export default function TreatmentRecords() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-2">Treatment Records</h1>
-              <p className="text-gray-600">Click on a patient to view their treatment history</p>
+              <p className="text-gray-600">Click on a pet to view their complete treatment history</p>
             </div>
           </div>
         </div>
@@ -101,7 +116,7 @@ export default function TreatmentRecords() {
           </div>
         </div>
 
-        {appointments.length === 0 ? (
+        {pets.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
             <div className="flex flex-col items-center justify-center">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
@@ -109,42 +124,58 @@ export default function TreatmentRecords() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
-              <p className="text-gray-500 font-medium">No appointments found</p>
-              <p className="text-gray-400 text-sm mt-1">There are no appointments with treatment records yet</p>
+              <p className="text-gray-500 font-medium">No pets found</p>
+              <p className="text-gray-400 text-sm mt-1">Register pets to start adding treatment records</p>
             </div>
           </div>
         ) : (
           <div className="space-y-4">
-            {appointments
-              .filter(appt => 
-                appt.petName && appt.petName.toLowerCase().includes(searchQuery.toLowerCase())
-              )
-              .map((appt) => {
-              const trs = treatments.filter(t => t.appointmentId === appt.appointmentId);
-              const isExpanded = expandedAppt === appt.appointmentId;
+            {filteredPets.map((pet) => {
+              const isExpanded = expandedPet === pet.petId;
               
               return (
-                <div key={appt.appointmentId} className="bg-white rounded-2xl shadow-lg overflow-hidden">
+                <div key={pet.petId} className="bg-white rounded-2xl shadow-lg overflow-hidden">
                   {/* Pet Header */}
                   <div 
                     className="p-6 cursor-pointer select-none hover:bg-pink-50 transition-colors duration-150 border-l-4 border-pink-400"
-                    onClick={() => toggleExpand(appt.appointmentId)}
+                    onClick={() => toggleExpand(pet.petId)}
                   >
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-4">
                         <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full text-white font-bold text-lg">
-                          {appt.petName ? appt.petName[0].toUpperCase() : '?'}
+                          {pet.name ? pet.name[0].toUpperCase() : '?'}
                         </div>
                         <div>
-                          <h2 className="text-xl font-bold text-gray-800">{appt.petName}</h2>
+                          <h2 className="text-xl font-bold text-gray-800">{pet.name}</h2>
                           <div className="flex items-center gap-4 text-gray-500 text-sm mt-1">
-                            <span>Appointment ID: {appt.appointmentId}</span>
+                            <span className="flex items-center gap-1">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                              </svg>
+                              {pet.species}
+                            </span>
+                            {pet.breed && (
+                              <span className="flex items-center gap-1">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                {pet.breed}
+                              </span>
+                            )}
                             <span className="flex items-center gap-1">
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                               </svg>
-                              {trs.length} {trs.length === 1 ? 'Record' : 'Records'}
+                              {pet.treatmentCount} {pet.treatmentCount === 1 ? 'Record' : 'Records'}
                             </span>
+                            {pet.ownerName && (
+                              <span className="flex items-center gap-1">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                                {pet.ownerName}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -153,7 +184,7 @@ export default function TreatmentRecords() {
                           className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white px-6 py-2.5 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setModal({ type: "add", appointmentId: appt.appointmentId });
+                            setModal({ type: "add", petId: pet.petId });
                           }}
                         >
                           + Add Treatment
@@ -170,7 +201,7 @@ export default function TreatmentRecords() {
                   {/* Treatment Records Table */}
                   {isExpanded && (
                     <div className="border-t border-gray-200">
-                      {trs.length === 0 ? (
+                      {pet.treatments.length === 0 ? (
                         <div className="p-12 text-center">
                           <div className="flex flex-col items-center justify-center">
                             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
@@ -179,7 +210,7 @@ export default function TreatmentRecords() {
                               </svg>
                             </div>
                             <p className="text-gray-500 font-medium">No treatments recorded yet</p>
-                            <p className="text-gray-400 text-sm mt-1">Click "Add Treatment" to create the first record</p>
+                            <p className="text-gray-400 text-sm mt-1">Click "Add Treatment" to create the first record for {pet.name}</p>
                           </div>
                         </div>
                       ) : (
@@ -197,7 +228,7 @@ export default function TreatmentRecords() {
                               </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                              {trs.map((t, index) => (
+                              {pet.treatments.map((t, index) => (
                                 <tr key={t.treatmentId} className={`hover:bg-pink-50 transition-colors duration-150 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
                                   <td className="px-6 py-4 whitespace-nowrap">
                                     <div className="flex items-center justify-center w-8 h-8 bg-pink-100 text-pink-600 rounded-full font-bold text-sm">
@@ -253,9 +284,7 @@ export default function TreatmentRecords() {
               );
             })}
             
-            {appointments.filter(appt => 
-              appt.petName && appt.petName.toLowerCase().includes(searchQuery.toLowerCase())
-            ).length === 0 && searchQuery && (
+            {filteredPets.length === 0 && searchQuery && (
               <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
                 <div className="flex flex-col items-center justify-center">
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
@@ -288,7 +317,7 @@ export default function TreatmentRecords() {
 function TreatmentModal({ modal, close, addTreatment, editTreatment }) {
   const isEdit = modal.type === "edit";
   const [form, setForm] = useState({
-    appointmentId: modal.appointmentId || modal.treatment?.appointmentId,
+    petId: modal.petId || modal.treatment?.petId,
     serviceGiven: modal.treatment?.serviceGiven || "",
     findings: modal.treatment?.findings || "",
     medicinePrescribed: modal.treatment?.medicinePrescribed || "",
