@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import api from "../api/api"; // axios instance
+import api from "../api/api";
 import { useAuth } from "../context/AuthContext";
 
 export default function TreatmentRecords() {
@@ -8,22 +8,22 @@ export default function TreatmentRecords() {
   const [treatments, setTreatments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState({ type: null, treatment: null, appointmentId: null });
+  const [expandedAppt, setExpandedAppt] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Fetch appointments and treatments
   const fetchData = async () => {
     if (!token) return;
     try {
       setLoading(true);
       const [apptRes, trRes] = await Promise.all([
-        api.get("/appointments", { headers: { Authorization: `Bearer ${token}` } }),
-        api.get("/treatments", { headers: { Authorization: `Bearer ${token}` } }),
+        api.get("/appointments"),
+        api.get("/treatment-records"),
       ]);
-
-      setAppointments(Array.isArray(apptRes.data) ? apptRes.data : []);
-      setTreatments(Array.isArray(trRes.data) ? trRes.data : []);
-    } catch (err) {
-      console.error("Error fetching data:", err);
-      alert("Failed to load data. Check console for details.");
+      setAppointments(apptRes.data || []);
+      setTreatments(trRes.data || []);
+    } catch (e) {
+      console.error(e);
+      alert("Failed to load data");
     } finally {
       setLoading(false);
     }
@@ -33,150 +33,250 @@ export default function TreatmentRecords() {
     fetchData();
   }, [token]);
 
-  // Add new treatment
-  const addTreatment = async (newTreatment) => {
-    try {
-      const res = await api.post("/treatments", newTreatment, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setTreatments((prev) => [...prev, res.data]);
-      setModal({ type: null, treatment: null, appointmentId: null });
-      fetchData();
-    } catch (err) {
-      console.error("Add treatment error:", err);
-      alert(err.response?.data?.message || "Failed to add treatment.");
-    }
+  const addTreatment = async (data) => {
+    data.serviceGiven = data.serviceGiven || "";
+    data.findings = data.findings || "";
+    await api.post("/treatment-records", data);
+    fetchData();
+    setModal({ type: null });
   };
 
-  // Edit treatment
-  const editTreatment = async (updatedTreatment) => {
-    try {
-      const res = await api.put(`/treatments/${updatedTreatment.treatmentId}`, updatedTreatment, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setTreatments((prev) =>
-        prev.map((t) => (t.treatmentId === updatedTreatment.treatmentId ? res.data : t))
-      );
-      setModal({ type: null, treatment: null, appointmentId: null });
-      fetchData();
-    } catch (err) {
-      console.error("Edit treatment error:", err);
-      alert(err.response?.data?.message || "Failed to update treatment.");
-    }
+  const editTreatment = async (data) => {
+    data.serviceGiven = data.serviceGiven || "";
+    data.findings = data.findings || "";
+    await api.put(`/treatment-records/${data.treatmentId}`, data);
+    fetchData();
+    setModal({ type: null });
   };
 
-  // Delete treatment
   const deleteTreatment = async (id) => {
-    if (!confirm("Are you sure you want to delete this treatment?")) return;
-    try {
-      await api.delete(`/treatments/${id}`, { headers: { Authorization: `Bearer ${token}` } });
-      setTreatments((prev) => prev.filter((t) => t.treatmentId !== id));
-      fetchData();
-    } catch (err) {
-      console.error("Delete treatment error:", err);
-      alert(err.response?.data?.message || "Failed to delete treatment.");
-    }
+    if (!confirm("Delete this treatment?")) return;
+    await api.delete(`/treatment-records/${id}`);
+    fetchData();
   };
 
-  if (loading)
-    return <div className="p-8 text-center text-gray-500">Loading treatment records...</div>;
+  const toggleExpand = (apptId) => {
+    setExpandedAppt(expandedAppt === apptId ? null : apptId);
+  };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100 p-8">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-serif text-gray-800 mb-3">Treatment Records Dashboard</h1>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {appointments.map((appt) => {
-            const trRecords = treatments.filter((t) => t.appointmentId === appt.appointmentId);
-
-            return (
-              <div
-                key={appt.appointmentId}
-                className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-pink-100"
-              >
-                <h2 className="text-2xl font-semibold">
-                  {appt.petName} ({appt.petSpecies || "-"})
-                </h2>
-                <p>
-                  <strong>Owner:</strong> {appt.ownerName || "-"}
-                </p>
-                <p>
-                  <strong>Doctor:</strong> {appt.staffName || "-"}
-                </p>
-                <p>
-                  <strong>Status:</strong> {appt.status || "-"}
-                </p>
-
-                <div className="flex justify-between items-center mt-2 mb-2">
-                  <h3>Treatment Records:</h3>
-                  {appt.status?.toLowerCase() === "completed" ? (
-                    <button
-                      onClick={() => setModal({ type: "add", appointmentId: appt.appointmentId })}
-                      className="bg-pink-500 text-white px-2 py-1 rounded"
-                    >
-                      Add
-                    </button>
-                  ) : (
-                    <button disabled className="bg-gray-300 text-gray-600 px-2 py-1 rounded">
-                      Add
-                    </button>
-                  )}
-                </div>
-
-                {trRecords.length > 0 ? (
-                  <ul>
-                    {trRecords.map((t) => (
-                      <li
-                        key={t.treatmentId}
-                        className="mb-2 border-b border-pink-200 pb-2"
-                      >
-                        <p>
-                          <strong>Service:</strong> {t.serviceGiven}
-                        </p>
-                        <p>
-                          <strong>Findings:</strong> {t.findings}
-                        </p>
-                        <p>
-                          <strong>Medicine:</strong> {t.medicinePrescribed || "-"}
-                        </p>
-                        <p>
-                          <strong>Date:</strong> {t.serviceDate}
-                        </p>
-                        <p>
-                          <strong>Total Bill:</strong>{" "}
-                          {t.totalBill ? `₱${t.totalBill.toFixed(2)}` : "-"}
-                        </p>
-                        <div className="flex gap-2 mt-1">
-                          <button
-                            onClick={() => setModal({ type: "edit", treatment: t })}
-                            className="bg-yellow-400 px-2 py-1 rounded"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => deleteTreatment(t.treatmentId)}
-                            className="bg-red-500 text-white px-2 py-1 rounded"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p>No records</p>
-                )}
-              </div>
-            );
-          })}
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-pink-200 border-t-pink-500 mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading treatment records...</p>
         </div>
       </div>
+    );
+  }
 
+  return (
+    <div className="min-h-screen p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100">
+      <div className="max-w-7xl mx-auto">
+        {/* Header Section */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-t-4 border-pink-400">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-2">Treatment Records</h1>
+              <p className="text-gray-600">Click on a patient to view their treatment history</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              placeholder="Search by pet name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 border-2 border-pink-200 rounded-xl focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 transition-all duration-200"
+            />
+          </div>
+        </div>
+
+        {appointments.length === 0 ? (
+          <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+            <div className="flex flex-col items-center justify-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <p className="text-gray-500 font-medium">No appointments found</p>
+              <p className="text-gray-400 text-sm mt-1">There are no appointments with treatment records yet</p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {appointments
+              .filter(appt => 
+                appt.petName && appt.petName.toLowerCase().includes(searchQuery.toLowerCase())
+              )
+              .map((appt) => {
+              const trs = treatments.filter(t => t.appointmentId === appt.appointmentId);
+              const isExpanded = expandedAppt === appt.appointmentId;
+              
+              return (
+                <div key={appt.appointmentId} className="bg-white rounded-2xl shadow-lg overflow-hidden">
+                  {/* Pet Header */}
+                  <div 
+                    className="p-6 cursor-pointer select-none hover:bg-pink-50 transition-colors duration-150 border-l-4 border-pink-400"
+                    onClick={() => toggleExpand(appt.appointmentId)}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full text-white font-bold text-lg">
+                          {appt.petName ? appt.petName[0].toUpperCase() : '?'}
+                        </div>
+                        <div>
+                          <h2 className="text-xl font-bold text-gray-800">{appt.petName}</h2>
+                          <div className="flex items-center gap-4 text-gray-500 text-sm mt-1">
+                            <span>Appointment ID: {appt.appointmentId}</span>
+                            <span className="flex items-center gap-1">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              {trs.length} {trs.length === 1 ? 'Record' : 'Records'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button
+                          className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white px-6 py-2.5 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setModal({ type: "add", appointmentId: appt.appointmentId });
+                          }}
+                        >
+                          + Add Treatment
+                        </button>
+                        <div className={`flex items-center justify-center w-8 h-8 bg-pink-100 rounded-full transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
+                          <svg className="w-5 h-5 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Treatment Records Table */}
+                  {isExpanded && (
+                    <div className="border-t border-gray-200">
+                      {trs.length === 0 ? (
+                        <div className="p-12 text-center">
+                          <div className="flex flex-col items-center justify-center">
+                            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            </div>
+                            <p className="text-gray-500 font-medium">No treatments recorded yet</p>
+                            <p className="text-gray-400 text-sm mt-1">Click "Add Treatment" to create the first record</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gradient-to-r from-pink-100 to-rose-100">
+                              <tr>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">#</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Service Given</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Findings</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Medicine</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Date</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Total Bill</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                              {trs.map((t, index) => (
+                                <tr key={t.treatmentId} className={`hover:bg-pink-50 transition-colors duration-150 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="flex items-center justify-center w-8 h-8 bg-pink-100 text-pink-600 rounded-full font-bold text-sm">
+                                      {index + 1}
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <div className="text-sm font-semibold text-gray-900">{t.serviceGiven}</div>
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <div className="text-sm text-gray-700 max-w-xs truncate" title={t.findings}>{t.findings}</div>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="text-sm text-gray-700">{t.medicinePrescribed || "N/A"}</div>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="text-sm text-gray-700">
+                                      {new Date(t.serviceDate).toLocaleDateString('en-US', { 
+                                        year: 'numeric', 
+                                        month: 'short', 
+                                        day: 'numeric' 
+                                      })}
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="text-sm font-bold text-green-600">₱{parseFloat(t.totalBill || 0).toFixed(2)}</div>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => setModal({ type: "edit", treatment: t })}
+                                        className="px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors duration-150 font-medium"
+                                      >
+                                        Edit
+                                      </button>
+                                      <button
+                                        onClick={() => deleteTreatment(t.treatmentId)}
+                                        className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors duration-150 font-medium"
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            
+            {appointments.filter(appt => 
+              appt.petName && appt.petName.toLowerCase().includes(searchQuery.toLowerCase())
+            ).length === 0 && searchQuery && (
+              <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+                <div className="flex flex-col items-center justify-center">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <p className="text-gray-500 font-medium">No results found</p>
+                  <p className="text-gray-400 text-sm mt-1">Try searching with a different pet name</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Treatment Modal */}
       {modal.type && (
         <TreatmentModal
           modal={modal}
-          close={() => setModal({ type: null, treatment: null, appointmentId: null })}
+          close={() => setModal({ type: null })}
           addTreatment={addTreatment}
           editTreatment={editTreatment}
         />
@@ -188,98 +288,132 @@ export default function TreatmentRecords() {
 function TreatmentModal({ modal, close, addTreatment, editTreatment }) {
   const isEdit = modal.type === "edit";
   const [form, setForm] = useState({
-    appointmentId: modal.appointmentId || modal.treatment?.appointmentId || "",
+    appointmentId: modal.appointmentId || modal.treatment?.appointmentId,
     serviceGiven: modal.treatment?.serviceGiven || "",
     findings: modal.treatment?.findings || "",
     medicinePrescribed: modal.treatment?.medicinePrescribed || "",
     serviceDate: modal.treatment?.serviceDate || new Date().toISOString().split("T")[0],
-    totalBill: modal.treatment?.totalBill || "",
+    totalBill: modal.treatment?.totalBill || ""
   });
 
-  useEffect(() => {
-    setForm({
-      appointmentId: modal.appointmentId || modal.treatment?.appointmentId || "",
-      serviceGiven: modal.treatment?.serviceGiven || "",
-      findings: modal.treatment?.findings || "",
-      medicinePrescribed: modal.treatment?.medicinePrescribed || "",
-      serviceDate: modal.treatment?.serviceDate || new Date().toISOString().split("T")[0],
-      totalBill: modal.treatment?.totalBill || "",
-    });
-  }, [modal]);
-
-  const handleChange = (e) =>
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = () => {
+    if (!form.serviceGiven.trim() || !form.findings.trim()) {
+      alert("Service and Findings cannot be empty");
+      return;
+    }
     isEdit
       ? editTreatment({ ...form, treatmentId: modal.treatment.treatmentId })
       : addTreatment(form);
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-xl w-96">
-        <h2 className="text-xl font-semibold mb-4">
-          {isEdit ? "Edit" : "Add"} Treatment
-        </h2>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-          <input type="hidden" name="appointmentId" value={form.appointmentId} />
-          <input
-            name="serviceGiven"
-            placeholder="Service Given"
-            value={form.serviceGiven}
-            onChange={handleChange}
-            required
-            className="p-2 border rounded"
-          />
-          <input
-            name="findings"
-            placeholder="Findings"
-            value={form.findings}
-            onChange={handleChange}
-            required
-            className="p-2 border rounded"
-          />
-          <input
-            name="medicinePrescribed"
-            placeholder="Medicine"
-            value={form.medicinePrescribed}
-            onChange={handleChange}
-            className="p-2 border rounded"
-          />
-          <input
-            type="date"
-            name="serviceDate"
-            value={form.serviceDate}
-            onChange={handleChange}
-            required
-            className="p-2 border rounded"
-          />
-          <input
-            type="number"
-            name="totalBill"
-            placeholder="Total Bill"
-            value={form.totalBill}
-            onChange={handleChange}
-            className="p-2 border rounded"
-          />
-          <div className="flex justify-end gap-2 mt-2">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+        <div className="bg-gradient-to-r from-pink-500 to-rose-500 px-6 py-5 rounded-t-2xl">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-white">
+              {isEdit ? "Edit Treatment Record" : "Add New Treatment"}
+            </h2>
             <button
-              type="button"
               onClick={close}
-              className="px-4 py-2 border rounded"
+              className="text-white hover:bg-white/20 rounded-full p-2 transition-colors duration-200"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        
+        <div className="p-6">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Service Given <span className="text-pink-500">*</span>
+              </label>
+              <input
+                name="serviceGiven"
+                value={form.serviceGiven}
+                onChange={e => setForm({ ...form, serviceGiven: e.target.value })}
+                placeholder="e.g., Vaccination, Checkup, Surgery"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 transition-all duration-200"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Findings <span className="text-pink-500">*</span>
+              </label>
+              <textarea
+                name="findings"
+                value={form.findings}
+                onChange={e => setForm({ ...form, findings: e.target.value })}
+                placeholder="Enter diagnosis and observations..."
+                rows={3}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 transition-all duration-200 resize-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Medicine Prescribed
+              </label>
+              <input
+                name="medicinePrescribed"
+                value={form.medicinePrescribed}
+                onChange={e => setForm({ ...form, medicinePrescribed: e.target.value })}
+                placeholder="e.g., Amoxicillin 500mg"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 transition-all duration-200"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Service Date
+                </label>
+                <input
+                  type="date"
+                  name="serviceDate"
+                  value={form.serviceDate}
+                  onChange={e => setForm({ ...form, serviceDate: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 transition-all duration-200"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Total Bill (₱) <span className="text-pink-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  name="totalBill"
+                  value={form.totalBill}
+                  onChange={e => setForm({ ...form, totalBill: e.target.value })}
+                  placeholder="0.00"
+                  step="0.01"
+                  min="0"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 transition-all duration-200"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
+            <button
+              onClick={close}
+              className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-colors duration-200"
             >
               Cancel
             </button>
             <button
-              type="submit"
-              className="px-4 py-2 bg-pink-400 text-white rounded"
+              onClick={handleSubmit}
+              className="px-6 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
             >
-              {isEdit ? "Save" : "Add"}
+              {isEdit ? "Save Changes" : "Add Treatment"}
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
