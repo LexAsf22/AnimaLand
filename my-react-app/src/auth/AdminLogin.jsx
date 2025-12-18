@@ -190,7 +190,7 @@ export default function AdminLogin() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Contact Number</label>
                   <input 
                     type="text" 
-                    placeholder="+1 (555) 000-0000" 
+                    placeholder="+63 962 123 4567" 
                     value={contactNumber} 
                     onChange={(e) => setContactNumber(e.target.value)} 
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all outline-none bg-gray-50 hover:bg-white" 
