@@ -600,7 +600,7 @@ export default function AppointmentPage() {
       {showCompleteModal && completeAppt && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="bg-gradient-to-r from-green-500 to-emerald-500 px-6 py-4 sticky top-0">
+            <div className="bg-gradient-to-r from-pink-600 to-rose-500 px-6 py-4 sticky top-0">
               <h2 className="text-2xl font-bold text-white">Complete Appointment</h2>
               <p className="text-green-100 text-sm mt-1">
                 Pet: {completeAppt.petName} • Vet: Dr. {completeAppt.staffName}
@@ -615,7 +615,7 @@ export default function AppointmentPage() {
                 </label>
                 <textarea
                   placeholder="Enter clinical findings, diagnosis, and observations..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all resize-none"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all resize-none"
                   value={findings}
                   onChange={e => setFindings(e.target.value)}
                   rows="4"
@@ -629,7 +629,7 @@ export default function AppointmentPage() {
                 </label>
                 <textarea
                   placeholder="Enter prescribed medications, dosages, and instructions..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all resize-none"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all resize-none"
                   value={medicinePrescribed}
                   onChange={e => setMedicinePrescribed(e.target.value)}
                   rows="3"
@@ -666,10 +666,10 @@ export default function AppointmentPage() {
               </div>
 
               {/* Total Bill */}
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg px-6 py-4">
+              <div className="bg-gradient-to-r from-pink-50 to-rose-50 border-2 border-pink-200 rounded-lg px-6 py-4">
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-semibold text-gray-700">Total Bill</span>
-                  <span className="text-2xl font-bold text-green-600">
+                  <span className="text-2xl font-bold text-pink-600">
                     ₱{completeAppt.services && completeAppt.services.length > 0
                       ? completeAppt.services.reduce(
                         (sum, s) => sum + (Number(s.price || s.cost) || 0),
@@ -695,7 +695,7 @@ export default function AppointmentPage() {
                 Cancel
               </button>
               <button
-                className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={handleCompleteSubmit}
                 disabled={!findings.trim()}
               >
