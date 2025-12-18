@@ -3,12 +3,8 @@ package com.animaland.web.controller.api;
 import com.animaland.web.DTO.dashboard.DashboardStatsResponse;
 import com.animaland.web.DTO.dashboard.RecentAppointmentResponse;
 import com.animaland.web.DTO.dashboard.RecentPetResponse;
-import com.animaland.web.repository.AppointmentRepository;
-import com.animaland.web.repository.EmployeeRepository;
-import com.animaland.web.repository.OwnerRepository;
-import com.animaland.web.repository.PetRepository;
+import com.animaland.web.repository.*;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
@@ -31,7 +27,6 @@ public class DashboardController {
         this.ownerRepository = ownerRepository;
     }
 
-    // ----------------- Dashboard Stats -----------------
     @GetMapping("/stats")
     public DashboardStatsResponse getStats() {
         return new DashboardStatsResponse(
@@ -42,13 +37,11 @@ public class DashboardController {
         );
     }
 
-    // ----------------- Recent Appointments -----------------
     @GetMapping("/recent")
     public List<RecentAppointmentResponse> getRecentAppointments() {
         return appointmentRepository.findRecentAppointments().stream().limit(5).toList();
     }
 
-    // ----------------- Recent Pets -----------------
     @GetMapping("/recent-pets")
     public List<RecentPetResponse> getRecentPets() {
         return petRepository.findRecentPets().stream().limit(5).toList();

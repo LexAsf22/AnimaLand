@@ -1,4 +1,4 @@
-package com.animaland.web.DTO;
+package com.animaland.web.DTO.response;
 
 public class EmployeeResponseDTO {
     private Long employeeId;

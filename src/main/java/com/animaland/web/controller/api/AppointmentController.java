@@ -2,7 +2,6 @@ package com.animaland.web.controller.api;
 
 import com.animaland.web.DTO.AppointmentDTO;
 import com.animaland.web.DTO.response.AppointmentResponseDTO;
-import com.animaland.web.models.Appointment;
 import com.animaland.web.service.AppointmentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -30,8 +29,7 @@ public class AppointmentController {
 
     @GetMapping("/{id}")
     public ResponseEntity<AppointmentResponseDTO> getAppointment(@PathVariable Long id) {
-        Appointment appt = appointmentService.findById(id);
-        return ResponseEntity.ok(appointmentService.mapToResponseDTO(appt));
+        return ResponseEntity.ok(appointmentService.mapToResponseDTO(appointmentService.findById(id)));
     }
 
     @PostMapping
@@ -42,8 +40,8 @@ public class AppointmentController {
     @PutMapping("/{id}")
     public ResponseEntity<AppointmentResponseDTO> updateAppointment(@PathVariable Long id,
                                                                     @RequestBody AppointmentDTO dto) {
-        Appointment existing = appointmentService.findById(id);
-        return ResponseEntity.ok(appointmentService.updateAppointment(existing, dto));
+        // Pass id directly to service instead of fetching the existing appointment here
+        return ResponseEntity.ok(appointmentService.updateAppointment(id, dto));
     }
 
     @DeleteMapping("/{id}")

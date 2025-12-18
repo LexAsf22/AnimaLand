@@ -1,130 +1,165 @@
 package com.animaland.web.service;
 
 import com.animaland.web.DTO.AppointmentDTO;
+import com.animaland.web.DTO.ServiceEntityDTO;
 import com.animaland.web.DTO.response.AppointmentResponseDTO;
 import com.animaland.web.models.Appointment;
 import com.animaland.web.models.Employee;
 import com.animaland.web.models.Pet;
 import com.animaland.web.models.ServiceEntity;
-import com.animaland.web.models.TreatmentRecord;
 import com.animaland.web.repository.AppointmentRepository;
 import com.animaland.web.repository.EmployeeRepository;
 import com.animaland.web.repository.PetRepository;
 import com.animaland.web.repository.ServiceEntityRepository;
-import com.animaland.web.repository.TreatmentRecordRepository;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
     private final PetRepository petRepository;
-    private final ServiceEntityRepository serviceRepository;
     private final EmployeeRepository employeeRepository;
-    private final TreatmentRecordRepository treatmentRecordRepository;
+    private final ServiceEntityRepository serviceRepository;
 
     public AppointmentService(AppointmentRepository appointmentRepository,
                               PetRepository petRepository,
-                              ServiceEntityRepository serviceRepository,
                               EmployeeRepository employeeRepository,
-                              TreatmentRecordRepository treatmentRecordRepository) {
+                              ServiceEntityRepository serviceRepository) {
         this.appointmentRepository = appointmentRepository;
         this.petRepository = petRepository;
-        this.serviceRepository = serviceRepository;
         this.employeeRepository = employeeRepository;
-        this.treatmentRecordRepository = treatmentRecordRepository;
+        this.serviceRepository = serviceRepository;
     }
 
+    // -------------------------------
+    // FIND ALL
+    // -------------------------------
     public List<Appointment> findAllWithRelations() {
-        return appointmentRepository.findAllWithRelations();
+        return appointmentRepository.findAll();
+    }
+
+    // -------------------------------
+    // FIND BY ID
+    // -------------------------------
+    public Optional<Appointment> findOptionalById(Long id) {
+        return appointmentRepository.findByIdWithServices(id);
     }
 
     public Appointment findById(Long id) {
-        return appointmentRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found"));
+        return appointmentRepository.findByIdWithServices(id)
+                .orElseThrow(() -> new RuntimeException("Appointment not found with id: " + id));
     }
 
+    // -------------------------------
+    // CREATE
+    // -------------------------------
     public AppointmentResponseDTO save(AppointmentDTO dto) {
-        Appointment appt = new Appointment();
-        applyDto(appt, dto);
-        Appointment saved = appointmentRepository.save(appt);
-        return mapToResponseDTO(saved);
-    }
+        Appointment appointment = new Appointment();
 
-    public AppointmentResponseDTO updateAppointment(Appointment existing, AppointmentDTO dto) {
-        applyDto(existing, dto);
-        Appointment updated = appointmentRepository.save(existing);
-        return mapToResponseDTO(updated);
-    }
-
-    public void deleteAppointment(Long id) {
-        if (!appointmentRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found");
-        }
-        appointmentRepository.deleteById(id);
-    }
-
-    public AppointmentResponseDTO completeAppointment(Long id) {
-        Appointment appt = findById(id);
-        appt.setStatus("Completed");
-
-        // Create TreatmentRecord if none exists
-        if (appt.getTreatments() == null || appt.getTreatments().isEmpty()) {
-            TreatmentRecord tr = new TreatmentRecord();
-            tr.setAppointment(appt);
-            tr.setServiceGiven(appt.getService().getServiceName());
-            tr.setFindings("-");
-            tr.setMedicinePrescribed("-");
-            tr.setServiceDate(java.time.LocalDate.now());
-            tr.setTotalBill(0.0);
-            treatmentRecordRepository.save(tr);
-        }
-
-        Appointment saved = appointmentRepository.save(appt);
-        return mapToResponseDTO(saved);
-    }
-
-    private void applyDto(Appointment appt, AppointmentDTO dto) {
-        if (dto.getPetId() == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pet required");
         Pet pet = petRepository.findById(dto.getPetId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pet not found"));
-        if (pet.getOwner() == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pet has no owner");
-
-        ServiceEntity service = serviceRepository.findById(dto.getServiceId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Service not found"));
-
+                .orElseThrow(() -> new RuntimeException("Pet not found"));
         Employee staff = employeeRepository.findById(dto.getStaffId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Staff not found"));
+                .orElseThrow(() -> new RuntimeException("Staff not found"));
 
-        appt.setPet(pet);
-        appt.setService(service);
-        appt.setStaff(staff);
-        appt.setAppointmentDatetime(dto.getAppointmentDatetime());
-        appt.setStatus(dto.getStatus());
-        appt.setRemarks(dto.getRemarks());
+        List<ServiceEntity> services = serviceRepository.findAllById(dto.getServiceIds());
+        if (services.size() != dto.getServiceIds().size()) {
+            throw new RuntimeException("One or more services not found");
+        }
+
+        appointment.setPet(pet);
+        appointment.setStaff(staff);
+        appointment.setServices(services);
+        appointment.setAppointmentDatetime(dto.getAppointmentDatetime());
+        appointment.setRemarks(dto.getRemarks() != null ? dto.getRemarks() : "-");
+        appointment.setStatus(dto.getStatus() != null ? dto.getStatus() : "Pending");
+
+        return mapToResponseDTO(appointmentRepository.save(appointment));
     }
 
-    public AppointmentResponseDTO mapToResponseDTO(Appointment appt) {
+    // -------------------------------
+    // UPDATE
+    // -------------------------------
+    public AppointmentResponseDTO updateAppointment(Long id, AppointmentDTO dto) {
+        Appointment existing = findById(id);
+
+        existing.setAppointmentDatetime(dto.getAppointmentDatetime());
+        existing.setRemarks(dto.getRemarks() != null ? dto.getRemarks() : existing.getRemarks());
+        existing.setStatus(dto.getStatus() != null ? dto.getStatus() : existing.getStatus());
+
+        if (dto.getPetId() != null) {
+            Pet pet = petRepository.findById(dto.getPetId())
+                    .orElseThrow(() -> new RuntimeException("Pet not found"));
+            existing.setPet(pet);
+        }
+
+        if (dto.getStaffId() != null) {
+            Employee staff = employeeRepository.findById(dto.getStaffId())
+                    .orElseThrow(() -> new RuntimeException("Staff not found"));
+            existing.setStaff(staff);
+        }
+
+        if (dto.getServiceIds() != null && !dto.getServiceIds().isEmpty()) {
+            List<ServiceEntity> services = serviceRepository.findAllById(dto.getServiceIds());
+            if (services.size() != dto.getServiceIds().size()) {
+                throw new RuntimeException("One or more services not found");
+            }
+            existing.setServices(services);
+        }
+
+        return mapToResponseDTO(appointmentRepository.save(existing));
+    }
+
+    // -------------------------------
+    // DELETE
+    // -------------------------------
+    public void deleteAppointment(Long id) {
+        Optional<Appointment> opt = appointmentRepository.findByIdWithServices(id);
+        if (opt.isEmpty()) {
+            throw new RuntimeException("Appointment not found with id: " + id);
+        }
+        appointmentRepository.delete(opt.get());
+    }
+
+    // -------------------------------
+    // COMPLETE
+    // -------------------------------
+    public AppointmentResponseDTO completeAppointment(Long id) {
+        Appointment appointment = findById(id);
+        appointment.setStatus("Completed");
+        return mapToResponseDTO(appointmentRepository.save(appointment));
+    }
+
+    // -------------------------------
+    // MAP TO RESPONSE DTO
+    // -------------------------------
+    public AppointmentResponseDTO mapToResponseDTO(Appointment appointment) {
         AppointmentResponseDTO dto = new AppointmentResponseDTO();
-        dto.setAppointmentId(appt.getAppointmentId());
-        dto.setPetId(appt.getPet().getPetId());
-        dto.setPetName(appt.getPet().getName());
-        dto.setPetSpecies(appt.getPet().getSpecies());
-        dto.setOwnerName(appt.getPet().getOwner() != null
-                ? appt.getPet().getOwner().getFirstName() + " " + appt.getPet().getOwner().getLastName()
-                : null);
-        dto.setServiceId(appt.getService().getServiceId());
-        dto.setServiceName(appt.getService().getServiceName());
-        dto.setStaffId(appt.getStaff().getEmployeeId());
-        dto.setStaffName(appt.getStaff().getFirstName() + " " + appt.getStaff().getLastName());
-        dto.setAppointmentDatetime(appt.getAppointmentDatetime());
-        dto.setStatus(appt.getStatus());
-        dto.setRemarks(appt.getRemarks());
+        dto.setAppointmentId(appointment.getAppointmentId());
+        dto.setPetName(appointment.getPet().getName());
+        dto.setStaffName(appointment.getStaff().getFirstName() + " " + appointment.getStaff().getLastName());
+
+        List<ServiceEntityDTO> serviceDTOs = appointment.getServices().stream()
+                .map(s -> {
+                    ServiceEntityDTO serviceDTO = new ServiceEntityDTO();
+                    serviceDTO.setServiceId(s.getServiceId());
+                    serviceDTO.setServiceName(s.getServiceName());
+                    serviceDTO.setServiceType(s.getServiceType());
+                    serviceDTO.setPrice(s.getPrice());
+                    serviceDTO.setDuration(s.getDuration());
+                    return serviceDTO;
+                })
+                .collect(Collectors.toList());
+        dto.setServices(serviceDTOs);
+
+        dto.setAppointmentDatetime(appointment.getAppointmentDatetime());
+        dto.setRemarks(appointment.getRemarks());
+        dto.setStatus(appointment.getStatus());
         return dto;
     }
 }

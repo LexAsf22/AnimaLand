@@ -1,7 +1,7 @@
 package com.animaland.web.controller.api;
 
 import com.animaland.web.DTO.EmployeeDTO;
-import com.animaland.web.DTO.EmployeeResponseDTO;
+import com.animaland.web.DTO.response.EmployeeResponseDTO;
 import com.animaland.web.models.Employee;
 import com.animaland.web.service.EmployeeService;
 import jakarta.validation.Valid;
