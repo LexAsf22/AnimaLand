@@ -9,8 +9,6 @@ export default function Owner() {
   const [modal, setModal] = useState({ type: null, owner: null });
   const [loading, setLoading] = useState(true);
 
-  const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
-
   // Fetch owners from API
   useEffect(() => {
     if (!token) {
@@ -21,10 +19,10 @@ export default function Owner() {
     const fetchOwners = async () => {
       try {
         setLoading(true);
-        const res = await api.get("/owners", authHeaders);
+        const res = await api.get("/owners"); // token automatically attached
         setOwners(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
-        console.error(err);
+        console.error("Failed to fetch owners:", err);
         alert(err.response?.data?.error || "Failed to fetch owners");
         setOwners([]);
       } finally {
@@ -38,10 +36,11 @@ export default function Owner() {
   // Add owner
   const addOwner = async (newOwner) => {
     try {
-      const res = await api.post("/owners", newOwner, authHeaders);
+      const res = await api.post("/owners", newOwner);
       setOwners((prev) => [...prev, res.data]);
       setModal({ type: null, owner: null });
     } catch (err) {
+      console.error(err);
       alert(err.response?.data?.error || "Failed to add owner");
     }
   };
@@ -49,12 +48,13 @@ export default function Owner() {
   // Edit owner
   const editOwner = async (updatedOwner) => {
     try {
-      const res = await api.put(`/owners/${updatedOwner.ownerId}`, updatedOwner, authHeaders);
+      const res = await api.put(`/owners/${updatedOwner.ownerId}`, updatedOwner);
       setOwners((prev) =>
         prev.map((o) => (o.ownerId === updatedOwner.ownerId ? res.data : o))
       );
       setModal({ type: null, owner: null });
     } catch (err) {
+      console.error(err);
       alert(err.response?.data?.error || "Failed to update owner");
     }
   };
@@ -63,9 +63,10 @@ export default function Owner() {
   const deleteOwner = async (id) => {
     if (!confirm("Are you sure you want to delete this owner?")) return;
     try {
-      await api.delete(`/owners/${id}`, authHeaders);
+      await api.delete(`/owners/${id}`);
       setOwners((prev) => prev.filter((o) => o.ownerId !== id));
     } catch (err) {
+      console.error(err);
       alert(err.response?.data?.error || "Failed to delete owner");
     }
   };
@@ -200,16 +201,16 @@ function OwnerModal({ type, owner, addOwner, editOwner, close }) {
           <button onClick={close} className="text-white hover:bg-white/20 rounded-full p-2">&times;</button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {["firstName","lastName","email","phoneNumber","address"].map((field) => (
+          {["firstName", "lastName", "email", "phoneNumber", "address"].map((field) => (
             <div key={field}>
               <label className="block text-sm font-semibold text-gray-700">{field}</label>
               <input
-                type={field==="email"?"email":"text"}
+                type={field === "email" ? "email" : "text"}
                 value={formData[field] || ""}
-                readOnly={type==="view"}
-                required={type!=="view"}
-                onChange={e => setFormData({...formData,[field]:e.target.value})}
-                className={`w-full px-4 py-3 border-2 rounded-xl ${type==="view"?"bg-gray-50 cursor-not-allowed":"border-gray-200 focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100"}`}
+                readOnly={type === "view"}
+                required={type !== "view"}
+                onChange={e => setFormData({ ...formData, [field]: e.target.value })}
+                className={`w-full px-4 py-3 border-2 rounded-xl ${type === "view" ? "bg-gray-50 cursor-not-allowed" : "border-gray-200 focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100"}`}
               />
             </div>
           ))}

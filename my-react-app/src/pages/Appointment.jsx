@@ -114,28 +114,34 @@ export default function AppointmentPage() {
       status,
     };
 
-
     try {
       setLoading(true);
 
       if (editingAppt) {
+        // Update existing appointment
         await api.put(`/appointments/${editingAppt.appointmentId}`, payload, authHeaders);
         alert("Appointment updated successfully!");
       } else {
-        await api.post("/appointments", payload, authHeaders);
+        // Create new appointment
+        const createRes = await api.post("/appointments", payload, authHeaders);
+        const newAppt = createRes.data;
+
+        // Map the services for frontend display
+        const apptServices = (selectedServiceIds || []).map(id => {
+          const svc = services.find(s => s.serviceId === id);
+          return svc ? { ...svc } : {};
+        });
+
+        // Add the new appointment locally
+        setAppointments(prev => [
+          ...prev,
+          { ...newAppt, services: apptServices, staffName: staff.find(s => s.employeeId === Number(selectedStaffId))?.firstName + " " + staff.find(s => s.employeeId === Number(selectedStaffId))?.lastName }
+        ]);
+
         alert("Appointment added successfully!");
       }
 
-      const refreshed = await api.get("/appointments", authHeaders);
-      const enrichedAppointments = (refreshed.data || []).map(appt => {
-        const apptServices = (appt.serviceIds || []).map(id =>
-          services.find(s => s.serviceId === id) || {}
-        );
-        return { ...appt, services: apptServices };
-      });
-
-      setAppointments(enrichedAppointments);
-
+      // Reset form
       setShowForm(false);
       setEditingAppt(null);
       setSelectedPetId("");
@@ -192,39 +198,63 @@ export default function AppointmentPage() {
   // =======================
   // COMPLETE APPOINTMENT
   // =======================
-  const handleCompleteClick = async (appt) => {
+  const handleCompleteClick = (appt) => {
     setCompleteAppt(appt);
     setShowCompleteModal(true);
   };
 
   const handleCompleteSubmit = async () => {
-    if (!completeAppt) return alert("No appointment selected!");
+  if (!completeAppt) return alert("No appointment selected!");
+  if (!findings.trim()) return alert("Please enter findings/diagnosis.");
 
-    try {
-      await api.put(
-        `/appointments/${completeAppt.appointmentId}/complete`,
-        {}, // send empty body since backend doesn't expect data
-        authHeaders
-      );
+  try {
+    setLoading(true);
 
-      const refreshed = await api.get("/appointments", authHeaders);
-      setAppointments(refreshed.data);
+    // Prepare treatment records payload
+    const records = completeAppt.services.map(s => ({
+      serviceGiven: s.serviceName,
+      totalBill: s.price || 0,
+      serviceDate: new Date().toISOString().slice(0, 10),
+      medicinePrescribed: medicinePrescribed || "-",
+      findings: findings || "-",
+      appointmentId: completeAppt.appointmentId,
+      petId: completeAppt.petId
+    }));
 
-      setShowCompleteModal(false);
-      setFindings("");
-      setMedicinePrescribed("");
-      setCompleteAppt(null);
-      alert("Appointment completed successfully!");
-    } catch (error) {
-      console.error("Failed to complete appointment:", error);
-      if (error.response?.status === 404) {
-        alert("Appointment not found. It may have been deleted.");
-      } else {
-        alert("Error completing appointment. Check console for details.");
-      }
-    }
-  };
+    // Send to backend
+    await api.post(
+      `/appointments/${completeAppt.appointmentId}/complete`,
+      records,
+      authHeaders
+    );
 
+    // Update the appointment status locally
+    setAppointments(prev =>
+      prev.map(appt =>
+        appt.appointmentId === completeAppt.appointmentId
+          ? { ...appt, status: "Completed" }
+          : appt
+      )
+    );
+
+    // Clear modal and form
+    setShowCompleteModal(false);
+    setFindings("");
+    setMedicinePrescribed("");
+    setCompleteAppt(null);
+
+    alert("Appointment completed and treatment records saved successfully!");
+  } catch (error) {
+    console.error("Failed to complete appointment:", error);
+    alert(error.response?.data?.message || "Error completing appointment. Check console for details.");
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+
+  
 
   if (initialLoading) {
     return (
@@ -244,49 +274,49 @@ export default function AppointmentPage() {
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50">
       {/* Header Bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-  <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-t-4 border-pink-400">
-    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-      <div>
-        <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-2">
-          Appointment Management
-        </h1>
-        <p className="text-gray-600">Schedule and manage veterinary appointments</p>
-      </div>
-      <button
-        onClick={() => {
-          setShowForm(prev => !prev);
-          if (showForm) {
-            setEditingAppt(null);
-            setSelectedPetId("");
-            setSelectedStaffId("");
-            setSelectedServiceIds([]);
-            setAppointmentDatetime("");
-            setRemarks("");
-            setStatus("Scheduled");
-          }
-        }}
-        className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white px-6 py-3 rounded-lg font-semibold shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2"
-      >
-        {showForm ? (
-          <>
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            Close Form
-          </>
-        ) : (
-          <>
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            New Appointment
-          </>
-        )}
-      </button>
-    </div>
-  </div>
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-t-4 border-pink-400">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-2">
+                Appointment Management
+              </h1>
+              <p className="text-gray-600">Schedule and manage veterinary appointments</p>
+            </div>
+            <button
+              onClick={() => {
+                setShowForm(prev => !prev);
+                if (showForm) {
+                  setEditingAppt(null);
+                  setSelectedPetId("");
+                  setSelectedStaffId("");
+                  setSelectedServiceIds([]);
+                  setAppointmentDatetime("");
+                  setRemarks("");
+                  setStatus("Scheduled");
+                }
+              }}
+              className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white px-6 py-3 rounded-lg font-semibold shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2"
+            >
+              {showForm ? (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Close Form
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  New Appointment
+                </>
+              )}
+            </button>
+          </div>
+        </div>
 
-  {/* Rest of your content continues here... */}
+        {/* Rest of your content continues here... */}
         {/* FORM */}
         {showForm && (
           <div className="bg-white rounded-xl shadow-lg border border-pink-100 mb-8 overflow-hidden">
@@ -507,11 +537,9 @@ export default function AppointmentPage() {
                     </td>
                   </tr>
                 ) : (
-                  appointments.map((appt, idx) => (
-                    <tr
-                      key={`${appt.appointmentId}-${idx}`}
-                      className="hover:bg-pink-50 transition-colors"
-                    >
+                  appointments.map((appt) => (
+                    <tr key={appt.appointmentId}>
+
                       {/* PET */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="font-semibold text-gray-800">{appt.petName || "-"}</div>
@@ -600,7 +628,7 @@ export default function AppointmentPage() {
       {showCompleteModal && completeAppt && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="bg-gradient-to-r from-green-500 to-emerald-500 px-6 py-4 sticky top-0">
+            <div className="bg-gradient-to-r from-pink-600 to-rose-500 px-6 py-4 sticky top-0">
               <h2 className="text-2xl font-bold text-white">Complete Appointment</h2>
               <p className="text-green-100 text-sm mt-1">
                 Pet: {completeAppt.petName} • Vet: Dr. {completeAppt.staffName}
@@ -615,7 +643,7 @@ export default function AppointmentPage() {
                 </label>
                 <textarea
                   placeholder="Enter clinical findings, diagnosis, and observations..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all resize-none"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all resize-none"
                   value={findings}
                   onChange={e => setFindings(e.target.value)}
                   rows="4"
@@ -629,7 +657,7 @@ export default function AppointmentPage() {
                 </label>
                 <textarea
                   placeholder="Enter prescribed medications, dosages, and instructions..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all resize-none"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all resize-none"
                   value={medicinePrescribed}
                   onChange={e => setMedicinePrescribed(e.target.value)}
                   rows="3"
@@ -650,26 +678,30 @@ export default function AppointmentPage() {
                   </div>
                   <div className="max-h-40 overflow-y-auto">
                     {completeAppt.services && completeAppt.services.length > 0 ? (
-                      completeAppt.services.map((s, i) => (
-                        <div key={i} className="flex justify-between px-4 py-3 border-b border-gray-100 last:border-b-0">
-                          <span className="text-gray-800">{s.serviceName || s.name}</span>
+                      completeAppt.services.map((s) => (
+                        <div
+                          key={`${completeAppt.appointmentId}-${s.serviceId}`}
+                          className="flex justify-between px-4 py-3 border-b border-gray-100 last:border-b-0"
+                        >
+                          <span className="text-gray-800">{s.serviceName}</span>
                           <span className="font-semibold text-gray-900">
-                            ₱{(Number(s.price || s.cost) || 0).toFixed(2)}
+                            ₱{Number(s.price || 0).toFixed(2)}
                           </span>
                         </div>
                       ))
                     ) : (
                       <p className="px-4 py-3 text-gray-500 text-center">No services selected</p>
                     )}
+
                   </div>
                 </div>
               </div>
 
               {/* Total Bill */}
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg px-6 py-4">
+              <div className="bg-gradient-to-r from-pink-50 to-rose-50 border-2 border-pink-200 rounded-lg px-6 py-4">
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-semibold text-gray-700">Total Bill</span>
-                  <span className="text-2xl font-bold text-green-600">
+                  <span className="text-2xl font-bold text-pink-600">
                     ₱{completeAppt.services && completeAppt.services.length > 0
                       ? completeAppt.services.reduce(
                         (sum, s) => sum + (Number(s.price || s.cost) || 0),
@@ -695,7 +727,7 @@ export default function AppointmentPage() {
                 Cancel
               </button>
               <button
-                className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={handleCompleteSubmit}
                 disabled={!findings.trim()}
               >
