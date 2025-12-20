@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @CrossOrigin
 @RestController
@@ -24,79 +23,64 @@ public class PetController {
         this.petService = petService;
     }
 
+    // ===========================
+    // GET ALL PETS
+    // ===========================
     @GetMapping
     public ResponseEntity<List<PetResponseDTO>> getAllPets() {
-        List<PetResponseDTO> pets = petService.findAll().stream()
-                .map(p -> new PetResponseDTO(
-                        p.getPetId(),
-                        p.getName(),
-                        p.getSpecies(),
-                        p.getBreed(),
-                        p.getAge(),
-                        p.getGender(),
-                        p.getOwner().getOwnerId(),
-                        p.getOwner().getFirstName() + " " + p.getOwner().getLastName()
-                ))
-                .collect(Collectors.toList());
+        List<PetResponseDTO> pets = petService.findAllDTO();
         return ResponseEntity.ok(pets);
     }
 
+    // ===========================
+    // GET PET BY ID
+    // ===========================
     @GetMapping("/{id}")
     public ResponseEntity<PetResponseDTO> getPetById(@PathVariable Long id) {
-        Pet pet = petService.findById(id);
-        if (pet == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Pet not found");
-        PetResponseDTO dto = new PetResponseDTO(
-                pet.getPetId(),
-                pet.getName(),
-                pet.getSpecies(),
-                pet.getBreed(),
-                pet.getAge(),
-                pet.getGender(),
-                pet.getOwner().getOwnerId(),
-                pet.getOwner().getFirstName() + " " + pet.getOwner().getLastName()
-        );
-        return ResponseEntity.ok(dto);
+        try {
+            PetResponseDTO dto = petService.findDTOById(id);
+            return ResponseEntity.ok(dto);
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
     }
 
+    // ===========================
+    // CREATE PET
+    // ===========================
     @PostMapping
     public ResponseEntity<PetResponseDTO> createPet(@Valid @RequestBody PetDTO petDTO) {
-        Pet created = petService.save(petDTO);
-        PetResponseDTO dto = new PetResponseDTO(
-                created.getPetId(),
-                created.getName(),
-                created.getSpecies(),
-                created.getBreed(),
-                created.getAge(),
-                created.getGender(),
-                created.getOwner().getOwnerId(),
-                created.getOwner().getFirstName() + " " + created.getOwner().getLastName()
-        );
-        return new ResponseEntity<>(dto, HttpStatus.CREATED);
+        try {
+            PetResponseDTO dto = petService.saveDTO(petDTO);
+            return new ResponseEntity<>(dto, HttpStatus.CREATED);
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
     }
 
+    // ===========================
+    // UPDATE PET
+    // ===========================
     @PutMapping("/{id}")
     public ResponseEntity<PetResponseDTO> updatePet(@PathVariable Long id, @Valid @RequestBody PetDTO petDTO) {
-        Pet existing = petService.findById(id);
-        if (existing == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Pet not found");
-        Pet updated = petService.updatePet(existing, petDTO);
-        PetResponseDTO dto = new PetResponseDTO(
-                updated.getPetId(),
-                updated.getName(),
-                updated.getSpecies(),
-                updated.getBreed(),
-                updated.getAge(),
-                updated.getGender(),
-                updated.getOwner().getOwnerId(),
-                updated.getOwner().getFirstName() + " " + updated.getOwner().getLastName()
-        );
-        return ResponseEntity.ok(dto);
+        try {
+            PetResponseDTO dto = petService.updateDTO(id, petDTO);
+            return ResponseEntity.ok(dto);
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
     }
 
+    // ===========================
+    // DELETE PET
+    // ===========================
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePet(@PathVariable Long id) {
-        Pet existing = petService.findById(id);
-        if (existing == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Pet not found");
-        petService.deletePet(id);
-        return ResponseEntity.noContent().build();
+        try {
+            petService.delete(id);
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
     }
 }

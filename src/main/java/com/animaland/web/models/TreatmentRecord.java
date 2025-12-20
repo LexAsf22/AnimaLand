@@ -17,12 +17,10 @@ public class TreatmentRecord {
     private String serviceGiven;
     private String findings;
     private String medicinePrescribed;
-
     private LocalDate serviceDate;
+    private Double totalBill;
 
-    private Double totalBill; // <- ADD THIS FIELD
-
-    // Getters and setters
+    // Getters and Setters
     public Long getTreatmentId() { return treatmentId; }
     public void setTreatmentId(Long treatmentId) { this.treatmentId = treatmentId; }
 
@@ -41,6 +39,6 @@ public class TreatmentRecord {
     public LocalDate getServiceDate() { return serviceDate; }
     public void setServiceDate(LocalDate serviceDate) { this.serviceDate = serviceDate; }
 
-    public Double getTotalBill() { return totalBill; } // <- ADD
-    public void setTotalBill(Double totalBill) { this.totalBill = totalBill; } // <- ADD
+    public Double getTotalBill() { return totalBill; }
+    public void setTotalBill(Double totalBill) { this.totalBill = totalBill; }
 }

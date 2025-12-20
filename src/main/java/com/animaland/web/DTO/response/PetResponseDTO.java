@@ -1,5 +1,8 @@
 package com.animaland.web.DTO.response;
 
+import java.util.List;
+import com.animaland.web.DTO.TreatmentRecordDTO;
+
 public class PetResponseDTO {
 
     private Long petId;
@@ -12,21 +15,12 @@ public class PetResponseDTO {
     private Long ownerId;
     private String ownerName;
 
-    // ✅ REQUIRED: No-args constructor
-    public PetResponseDTO() {
-    }
+    private List<TreatmentRecordDTO> treatmentRecords;
 
-    // ✅ Optional: All-args constructor (for JPQL projections, etc.)
-    public PetResponseDTO(
-            Long petId,
-            String name,
-            String species,
-            String breed,
-            int age,
-            String gender,
-            Long ownerId,
-            String ownerName
-    ) {
+    public PetResponseDTO() {}
+
+    public PetResponseDTO(Long petId, String name, String species, String breed, int age, String gender,
+                          Long ownerId, String ownerName) {
         this.petId = petId;
         this.name = name;
         this.species = species;
@@ -37,7 +31,20 @@ public class PetResponseDTO {
         this.ownerName = ownerName;
     }
 
-    // ✅ Getters
+    public PetResponseDTO(Long petId, String name, String species, String breed, int age, String gender,
+                          Long ownerId, String ownerName, List<TreatmentRecordDTO> treatmentRecords) {
+        this.petId = petId;
+        this.name = name;
+        this.species = species;
+        this.breed = breed;
+        this.age = age;
+        this.gender = gender;
+        this.ownerId = ownerId;
+        this.ownerName = ownerName;
+        this.treatmentRecords = treatmentRecords;
+    }
+
+    // Getters
     public Long getPetId() { return petId; }
     public String getName() { return name; }
     public String getSpecies() { return species; }
@@ -46,8 +53,9 @@ public class PetResponseDTO {
     public String getGender() { return gender; }
     public Long getOwnerId() { return ownerId; }
     public String getOwnerName() { return ownerName; }
+    public List<TreatmentRecordDTO> getTreatmentRecords() { return treatmentRecords; }
 
-    // ✅ Setters (THIS FIXES YOUR ERROR)
+    // Setters
     public void setPetId(Long petId) { this.petId = petId; }
     public void setName(String name) { this.name = name; }
     public void setSpecies(String species) { this.species = species; }
@@ -56,4 +64,5 @@ public class PetResponseDTO {
     public void setGender(String gender) { this.gender = gender; }
     public void setOwnerId(Long ownerId) { this.ownerId = ownerId; }
     public void setOwnerName(String ownerName) { this.ownerName = ownerName; }
+    public void setTreatmentRecords(List<TreatmentRecordDTO> treatmentRecords) { this.treatmentRecords = treatmentRecords; }
 }

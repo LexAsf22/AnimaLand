@@ -5,10 +5,12 @@ import com.animaland.web.models.Appointment;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
+@Repository
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
 
     // Fetch appointment with pet, owner, and services to prevent N+1 problem
@@ -32,7 +34,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
         )
         FROM Appointment a
         JOIN a.pet p
-        JOIN p.owner o
+        JOIN p.owner o  
         JOIN a.services s
         ORDER BY a.appointmentDatetime DESC
     """)

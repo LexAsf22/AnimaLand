@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @CrossOrigin
 @RestController
@@ -23,28 +24,47 @@ public class ServiceEntityController {
     }
 
     // --------------------------
-    // GET ALL SERVICES
+    // GET ALL SERVICES (as DTO)
     // --------------------------
     @GetMapping
-    public ResponseEntity<List<ServiceEntity>> getAllServices() {
-        List<ServiceEntity> serviceEntities = serviceEntityService.findAll();
-        return ResponseEntity.ok(serviceEntities);
+    public ResponseEntity<List<ServiceEntityDTO>> getAllServices() {
+        List<ServiceEntityDTO> services = serviceEntityService.findAll()
+                .stream()
+                .map(s -> {
+                    ServiceEntityDTO dto = new ServiceEntityDTO();
+                    dto.setServiceId(s.getServiceId());
+                    dto.setServiceName(s.getServiceName());
+                    dto.setServiceType(s.getServiceType());
+                    dto.setPrice(s.getPrice());
+                    dto.setDuration(s.getDuration());
+                    return dto;
+                })
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(services);
     }
 
     // --------------------------
     // CREATE SERVICE
     // --------------------------
     @PostMapping
-    public ResponseEntity<ServiceEntity> createService(@Valid @RequestBody ServiceEntityDTO serviceEntityDTO) {
+    public ResponseEntity<ServiceEntityDTO> createService(@Valid @RequestBody ServiceEntityDTO serviceEntityDTO) {
         ServiceEntity created = serviceEntityService.save(serviceEntityDTO);
-        return new ResponseEntity<>(created, HttpStatus.CREATED);
+
+        ServiceEntityDTO dto = new ServiceEntityDTO();
+        dto.setServiceId(created.getServiceId());
+        dto.setServiceName(created.getServiceName());
+        dto.setServiceType(created.getServiceType());
+        dto.setPrice(created.getPrice());
+        dto.setDuration(created.getDuration());
+
+        return new ResponseEntity<>(dto, HttpStatus.CREATED);
     }
 
     // --------------------------
     // UPDATE SERVICE
     // --------------------------
     @PutMapping("/{id}")
-    public ResponseEntity<ServiceEntity> updateService(
+    public ResponseEntity<ServiceEntityDTO> updateService(
             @PathVariable Long id,
             @Valid @RequestBody ServiceEntityDTO serviceEntityDTO
     ) {
@@ -54,7 +74,15 @@ public class ServiceEntityController {
         }
 
         ServiceEntity updated = serviceEntityService.updateService(existing, serviceEntityDTO);
-        return ResponseEntity.ok(updated);
+
+        ServiceEntityDTO dto = new ServiceEntityDTO();
+        dto.setServiceId(updated.getServiceId());
+        dto.setServiceName(updated.getServiceName());
+        dto.setServiceType(updated.getServiceType());
+        dto.setPrice(updated.getPrice());
+        dto.setDuration(updated.getDuration());
+
+        return ResponseEntity.ok(dto);
     }
 
     // --------------------------

@@ -1,59 +1,119 @@
-    package com.animaland.web.service;
+package com.animaland.web.service;
 
-    import com.animaland.web.DTO.PetDTO;
-    import com.animaland.web.models.Pet;
-    import com.animaland.web.models.Owner;
-    import com.animaland.web.repository.PetRepository;
-    import com.animaland.web.repository.OwnerRepository;
-    import org.springframework.http.HttpStatus;
-    import org.springframework.stereotype.Service;
-    import org.springframework.web.server.ResponseStatusException;
+import com.animaland.web.DTO.PetDTO;
+import com.animaland.web.DTO.response.PetResponseDTO;
+import com.animaland.web.models.Owner;
+import com.animaland.web.models.Pet;
+import com.animaland.web.repository.PetRepository;
+import org.springframework.stereotype.Service;
 
-    import java.util.List;
+import java.util.List;
 
-    @Service
-    public class PetService {
+@Service
+public class PetService {
 
-        private final PetRepository petRepository;
-        private final OwnerRepository ownerRepository;
+    private final PetRepository petRepository;
+    private final OwnerService ownerService;
 
-        public PetService(PetRepository petRepository, OwnerRepository ownerRepository) {
-            this.petRepository = petRepository;
-            this.ownerRepository = ownerRepository;
-        }
-
-        public List<Pet> findAll() {
-            return petRepository.findAll();
-        }
-
-        public Pet findById(Long id) {
-            return petRepository.findById(id).orElse(null);
-        }
-
-        public Pet save(PetDTO dto) {
-            Pet pet = new Pet();
-            applyDtoToPet(pet, dto);
-            return petRepository.save(pet);
-        }
-
-        public Pet updatePet(Pet pet, PetDTO dto) {
-            applyDtoToPet(pet, dto);
-            return petRepository.save(pet);
-        }
-
-        public void deletePet(Long id) {
-            petRepository.deleteById(id);
-        }
-
-        private void applyDtoToPet(Pet pet, PetDTO dto) {
-            pet.setName(dto.getName());
-            pet.setSpecies(dto.getSpecies());
-            pet.setBreed(dto.getBreed());
-            pet.setAge(dto.getAge());
-            pet.setGender(dto.getGender());
-
-            Owner owner = ownerRepository.findById(dto.getOwnerId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Owner not found"));
-            pet.setOwner(owner);
-        }
+    public PetService(PetRepository petRepository, OwnerService ownerService) {
+        this.petRepository = petRepository;
+        this.ownerService = ownerService;
     }
+
+    // ===========================
+    // CREATE PET
+    // ===========================
+    public PetResponseDTO saveDTO(PetDTO dto) {
+        Owner owner = ownerService.findById(dto.getOwnerId());
+        if (owner == null) {
+            throw new RuntimeException("Owner not found");
+        }
+
+        Pet pet = new Pet();
+        pet.setName(dto.getName());
+        pet.setSpecies(dto.getSpecies());
+        pet.setBreed(dto.getBreed());
+        pet.setAge(dto.getAge());
+        pet.setGender(dto.getGender());
+        pet.setOwner(owner);
+
+        Pet saved = petRepository.save(pet);
+        return mapToDTO(saved);
+    }
+
+    // ===========================
+    // GET ALL PETS
+    // ===========================
+    public List<PetResponseDTO> findAllDTO() {
+        return petRepository.findAll().stream()
+                .map(this::mapToDTO)
+                .toList();
+    }
+
+    // ===========================
+    // GET PET BY ID
+    // ===========================
+    public PetResponseDTO findDTOById(Long id) {
+        Pet pet = findById(id);
+        return mapToDTO(pet);
+    }
+
+    // ===========================
+    // UPDATE PET
+    // ===========================
+    public PetResponseDTO updateDTO(Long id, PetDTO dto) {
+        Pet existing = findById(id);
+
+        Owner owner = ownerService.findById(dto.getOwnerId());
+        if (owner == null) {
+            throw new RuntimeException("Owner not found");
+        }
+
+        existing.setName(dto.getName());
+        existing.setSpecies(dto.getSpecies());
+        existing.setBreed(dto.getBreed());
+        existing.setAge(dto.getAge());
+        existing.setGender(dto.getGender());
+        existing.setOwner(owner);
+
+        Pet updated = petRepository.save(existing);
+        return mapToDTO(updated);
+    }
+
+    // ===========================
+    // DELETE PET
+    // ===========================
+    public void delete(Long id) {
+        Pet pet = findById(id);
+        petRepository.delete(pet);
+    }
+
+    // ===========================
+    // INTERNAL METHODS
+    // ===========================
+    private Pet findById(Long id) {
+        return petRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Pet not found with id: " + id));
+    }
+
+    private PetResponseDTO mapToDTO(Pet pet) {
+        Long ownerId = null;
+        String ownerName = "Unknown Owner";
+
+        if (pet.getOwner() != null) {
+            ownerId = pet.getOwner().getOwnerId();
+            ownerName = pet.getOwner().getFirstName() + " " + pet.getOwner().getLastName();
+        }
+
+        return new PetResponseDTO(
+                pet.getPetId(),
+                pet.getName(),
+                pet.getSpecies(),
+                pet.getBreed(),
+                pet.getAge(),
+                pet.getGender(),
+                ownerId,
+                ownerName
+        );
+    }
+}
