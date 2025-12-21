@@ -72,12 +72,17 @@ export default function TreatmentRecords() {
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-t-4 border-pink-400">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
+<<<<<<< HEAD
               <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-2">
                 Treatment Records
               </h1>
               <p className="text-gray-600">
                 View complete treatment history for each pet
               </p>
+=======
+              <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-2">Treatment Records</h1>
+              <p className="text-gray-600">View complete treatment history for each pet</p>
+>>>>>>> b1b706ce2146276a68b5befe123318d323e212ed
             </div>
           </div>
         </div>
@@ -112,7 +117,19 @@ export default function TreatmentRecords() {
 
         {pets.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+<<<<<<< HEAD
             <p className="text-gray-500 font-medium">No pets found</p>
+=======
+            <div className="flex flex-col items-center justify-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <p className="text-gray-500 font-medium">No pets found</p>
+              <p className="text-gray-400 text-sm mt-1">Register pets to start viewing treatment records</p>
+            </div>
+>>>>>>> b1b706ce2146276a68b5befe123318d323e212ed
           </div>
         ) : (
           <div className="space-y-4">
@@ -120,10 +137,14 @@ export default function TreatmentRecords() {
               const isExpanded = expandedPet === pet.petId;
 
               return (
+<<<<<<< HEAD
                 <div
                   key={`pet-${pet.petId}`}
                   className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
                 >
+=======
+                <div key={pet.petId} className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300">
+>>>>>>> b1b706ce2146276a68b5befe123318d323e212ed
                   {/* Pet Header */}
                   <div className="p-6 border-l-4 border-pink-400">
                     <div className="flex justify-between items-center">
@@ -140,6 +161,31 @@ export default function TreatmentRecords() {
                             <span>
                               {pet.treatmentCount} {pet.treatmentCount === 1 ? "Record" : "Records"}
                             </span>
+<<<<<<< HEAD
+=======
+                            {pet.breed && (
+                              <span className="flex items-center gap-1">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                {pet.breed}
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1 px-2 py-1 bg-pink-100 text-pink-600 rounded-full font-semibold">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              {pet.treatmentCount} {pet.treatmentCount === 1 ? 'Record' : 'Records'}
+                            </span>
+                            {pet.ownerName && (
+                              <span className="flex items-center gap-1">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                                {pet.ownerName}
+                              </span>
+                            )}
+>>>>>>> b1b706ce2146276a68b5befe123318d323e212ed
                           </div>
                         </div>
                       </div>
@@ -147,7 +193,15 @@ export default function TreatmentRecords() {
                         onClick={() => toggleExpand(pet.petId)}
                         className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white px-6 py-2.5 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
                       >
+<<<<<<< HEAD
                         {isExpanded ? "Hide Records" : "View Records"}
+=======
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        {isExpanded ? 'Hide Records' : 'View Records'}
+>>>>>>> b1b706ce2146276a68b5befe123318d323e212ed
                       </button>
                     </div>
                   </div>
@@ -157,25 +211,47 @@ export default function TreatmentRecords() {
                     <div className="border-t border-gray-200">
                       {pet.treatments.length === 0 ? (
                         <div className="p-12 text-center">
+<<<<<<< HEAD
                           <p className="text-gray-500 font-medium">
                             No treatments recorded yet
                           </p>
+=======
+                          <div className="flex flex-col items-center justify-center">
+                            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            </div>
+                            <p className="text-gray-500 font-medium">No treatments recorded yet</p>
+                            <p className="text-gray-400 text-sm mt-1">Complete appointments to add treatment records for {pet.name}</p>
+                          </div>
+>>>>>>> b1b706ce2146276a68b5befe123318d323e212ed
                         </div>
                       ) : (
                         <div className="overflow-x-auto">
                           <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gradient-to-r from-pink-100 to-rose-100">
                               <tr>
+<<<<<<< HEAD
                                 <th>#</th>
                                 <th>Service Given</th>
                                 <th>Findings</th>
                                 <th>Medicine</th>
                                 <th>Date</th>
                                 <th>Total Bill</th>
+=======
+                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">#</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Service Given</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Findings</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Medicine</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Date</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Total Bill</th>
+>>>>>>> b1b706ce2146276a68b5befe123318d323e212ed
                               </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                               {pet.treatments.map((t, index) => (
+<<<<<<< HEAD
                                 <tr
                                   key={t.key}
                                   className={`hover:bg-pink-50 transition-colors duration-150 ${
@@ -195,6 +271,35 @@ export default function TreatmentRecords() {
                                       : "N/A"}
                                   </td>
                                   <td>₱{parseFloat(t.totalBill || 0).toFixed(2)}</td>
+=======
+                                <tr key={t.treatmentId} className={`hover:bg-pink-50 transition-colors duration-150 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="flex items-center justify-center w-8 h-8 bg-pink-100 text-pink-600 rounded-full font-bold text-sm">
+                                      {index + 1}
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <div className="text-sm font-semibold text-gray-900">{t.serviceGiven}</div>
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <div className="text-sm text-gray-700 max-w-xs" title={t.findings}>{t.findings}</div>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="text-sm text-gray-700">{t.medicinePrescribed || "N/A"}</div>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="text-sm text-gray-700">
+                                      {new Date(t.serviceDate).toLocaleDateString('en-US', { 
+                                        year: 'numeric', 
+                                        month: 'short', 
+                                        day: 'numeric' 
+                                      })}
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="text-sm font-bold text-green-600">₱{parseFloat(t.totalBill || 0).toFixed(2)}</div>
+                                  </td>
+>>>>>>> b1b706ce2146276a68b5befe123318d323e212ed
                                 </tr>
                               ))}
                             </tbody>
@@ -217,4 +322,8 @@ export default function TreatmentRecords() {
       </div>
     </div>
   );
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> b1b706ce2146276a68b5befe123318d323e212ed
