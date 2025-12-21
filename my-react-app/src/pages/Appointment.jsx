@@ -210,25 +210,23 @@ export default function AppointmentPage() {
   try {
     setLoading(true);
 
-    // Prepare treatment records payload
+    // ✅ FIXED: match backend TreatmentRecordDTO exactly
     const records = completeAppt.services.map(s => ({
-      serviceGiven: s.serviceName,
-      totalBill: s.price || 0,
-      serviceDate: new Date().toISOString().slice(0, 10),
-      medicinePrescribed: medicinePrescribed || "-",
-      findings: findings || "-",
       appointmentId: completeAppt.appointmentId,
-      petId: completeAppt.petId
+      serviceId: s.serviceId,                 // ✅ REQUIRED
+      findings: findings || "-",
+      medicinePrescribed: medicinePrescribed || "-",
+      serviceDate: new Date().toISOString().slice(0, 10),
+      totalBill: s.price || 0                 // ✅ price saved
     }));
 
-    // Send to backend
     await api.post(
       `/appointments/${completeAppt.appointmentId}/complete`,
       records,
       authHeaders
     );
 
-    // Update the appointment status locally
+    // Update appointment status locally
     setAppointments(prev =>
       prev.map(appt =>
         appt.appointmentId === completeAppt.appointmentId
@@ -237,7 +235,7 @@ export default function AppointmentPage() {
       )
     );
 
-    // Clear modal and form
+    // Reset modal state
     setShowCompleteModal(false);
     setFindings("");
     setMedicinePrescribed("");
@@ -246,7 +244,7 @@ export default function AppointmentPage() {
     alert("Appointment completed and treatment records saved successfully!");
   } catch (error) {
     console.error("Failed to complete appointment:", error);
-    alert(error.response?.data?.message || "Error completing appointment. Check console for details.");
+    alert(error.response?.data?.message || "Error completing appointment.");
   } finally {
     setLoading(false);
   }
@@ -254,7 +252,8 @@ export default function AppointmentPage() {
 
 
 
-  
+
+
 
   if (initialLoading) {
     return (
